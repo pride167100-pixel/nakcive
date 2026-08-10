@@ -8,10 +8,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.nakcive.app.ui.screens.AddRecordScreen
+import com.nakcive.app.ui.screens.HomeScreen
+import com.nakcive.app.ui.screens.MapScreen
+import com.nakcive.app.ui.screens.RecordScreen
+import com.nakcive.app.ui.screens.SettingsScreen
+import com.nakcive.app.ui.screens.SpeciesScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,25 +26,33 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    HomeScreen(modifier = Modifier.padding(innerPadding))
+                    val navController = rememberNavController()
+                    NavHost(
+                        navController = navController,
+                        startDestination = "home",
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable("home") {
+                            HomeScreen(onNavigate = { route -> navController.navigate(route) })
+                        }
+                        composable("map") {
+                            MapScreen(onBack = { navController.popBackStack() })
+                        }
+                        composable("record") {
+                            RecordScreen(onBack = { navController.popBackStack() })
+                        }
+                        composable("add") {
+                            AddRecordScreen(onBack = { navController.popBackStack() })
+                        }
+                        composable("species") {
+                            SpeciesScreen(onBack = { navController.popBackStack() })
+                        }
+                        composable("settings") {
+                            SettingsScreen(onBack = { navController.popBackStack() })
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
-    Text(
-        text = "낚카이브에 오신 것을 환영합니다",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    MaterialTheme {
-        HomeScreen()
     }
 }
