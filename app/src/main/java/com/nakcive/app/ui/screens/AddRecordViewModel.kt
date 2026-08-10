@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class AddRecordUiState(
+    val photoPath: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
     val speciesName: String = "",
     val sizeCm: String = "",
     val weightKg: String = "",
@@ -47,15 +50,19 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(memo = value) }
     }
 
+    fun setCapturedPhoto(path: String, latitude: Double, longitude: Double) {
+        _uiState.update { it.copy(photoPath = path, latitude = latitude, longitude = longitude) }
+    }
+
     fun save() {
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
             fishingRecordDao.insert(
                 FishingRecord(
-                    photoPath = "",
-                    latitude = 0.0,
-                    longitude = 0.0,
+                    photoPath = state.photoPath,
+                    latitude = state.latitude,
+                    longitude = state.longitude,
                     recordedAt = System.currentTimeMillis(),
                     fishingMethod = state.fishingMethod,
                     tideLevel = null,
