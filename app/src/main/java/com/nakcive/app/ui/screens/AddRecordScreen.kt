@@ -2,6 +2,7 @@ package com.nakcive.app.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -41,14 +42,16 @@ import coil.compose.AsyncImage
 import com.nakcive.app.ui.camera.CameraCaptureScreen
 import com.nakcive.app.ui.camera.getCurrentLocation
 import kotlinx.coroutines.launch
-import java.io.File
 
 private enum class AddRecordStep { PERMISSION, CAMERA, FORM }
 
-private val requiredPermissions = arrayOf(
-    Manifest.permission.CAMERA,
-    Manifest.permission.ACCESS_FINE_LOCATION,
-)
+private val requiredPermissions = buildList {
+    add(Manifest.permission.CAMERA)
+    add(Manifest.permission.ACCESS_FINE_LOCATION)
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    }
+}.toTypedArray()
 
 @Composable
 fun AddRecordScreen(
@@ -112,11 +115,11 @@ fun AddRecordScreen(
         AddRecordStep.CAMERA -> {
             CameraCaptureScreen(
                 modifier = modifier,
-                onPhotoCaptured = { photoFile ->
+                onPhotoCaptured = { photoUri ->
                     coroutineScope.launch {
                         val location = getCurrentLocation(context)
                         viewModel.setCapturedPhoto(
-                            path = photoFile.absolutePath,
+                            path = photoUri.toString(),
                             latitude = location?.latitude ?: 0.0,
                             longitude = location?.longitude ?: 0.0,
                         )
@@ -139,7 +142,7 @@ fun AddRecordScreen(
 
                 if (uiState.photoPath.isNotBlank()) {
                     AsyncImage(
-                        model = File(uiState.photoPath),
+                        model = uiState.photoPath,
                         contentDescription = "촬영한 사진",
                         modifier = Modifier
                             .fillMaxWidth()

@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.nakcive.app.data.entity.FishingRecord
-import java.io.File
 
 @Composable
 fun RecordScreen(
@@ -102,7 +101,7 @@ private fun RecordThumbnail(photoPath: String) {
 
     if (photoPath.isNotBlank()) {
         AsyncImage(
-            model = File(photoPath),
+            model = photoPath,
             contentDescription = "기록 사진",
             modifier = thumbnailModifier,
             contentScale = ContentScale.Crop,

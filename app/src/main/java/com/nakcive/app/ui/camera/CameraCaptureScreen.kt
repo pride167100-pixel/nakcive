@@ -1,6 +1,9 @@
 package com.nakcive.app.ui.camera
 
-import android.content.Context
+import android.content.ContentValues
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -23,13 +26,12 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
 fun CameraCaptureScreen(
-    onPhotoCaptured: (File) -> Unit,
+    onPhotoCaptured: (Uri) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -71,14 +73,17 @@ fun CameraCaptureScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Button(onClick = {
-                val photoFile = createPhotoFile(context)
-                val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+                val outputOptions = ImageCapture.OutputFileOptions.Builder(
+                    context.contentResolver,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    createImageContentValues(),
+                ).build()
                 imageCapture.takePicture(
                     outputOptions,
                     ContextCompat.getMainExecutor(context),
                     object : ImageCapture.OnImageSavedCallback {
                         override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            onPhotoCaptured(photoFile)
+                            output.savedUri?.let(onPhotoCaptured)
                         }
 
                         override fun onError(exception: ImageCaptureException) {
@@ -96,8 +101,13 @@ fun CameraCaptureScreen(
     }
 }
 
-private fun createPhotoFile(context: Context): File {
-    val photosDir = File(context.filesDir, "photos").apply { mkdirs() }
+private fun createImageContentValues(): ContentValues {
     val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())
-    return File(photosDir, "$timestamp.jpg")
+    return ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, "낚카이브_$timestamp")
+        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/낚카이브")
+        }
+    }
 }
