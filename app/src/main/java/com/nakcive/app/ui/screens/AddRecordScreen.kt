@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -26,6 +28,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -33,9 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.nakcive.app.ui.camera.CameraCaptureScreen
 import com.nakcive.app.ui.camera.getCurrentLocation
 import kotlinx.coroutines.launch
+import java.io.File
 
 private enum class AddRecordStep { PERMISSION, CAMERA, FORM }
 
@@ -130,7 +136,19 @@ fun AddRecordScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(text = "＋ 등록", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                Text(text = "사진과 위치가 기록되었습니다", fontSize = 14.sp)
+
+                if (uiState.photoPath.isNotBlank()) {
+                    AsyncImage(
+                        model = File(uiState.photoPath),
+                        contentDescription = "촬영한 사진",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+                Text(text = "위치가 기록되었습니다", fontSize = 14.sp)
 
                 OutlinedTextField(
                     value = uiState.speciesName,
