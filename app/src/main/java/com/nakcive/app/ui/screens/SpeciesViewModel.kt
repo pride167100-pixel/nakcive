@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nakcive.app.data.NakciveDatabase
+import com.nakcive.app.data.SpeciesRecordSync
 import com.nakcive.app.data.entity.Species
 import com.nakcive.app.data.entity.UserSpeciesRecord
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,6 +69,13 @@ class SpeciesViewModel(application: Application) : AndroidViewModel(application)
 
             val userSpeciesRecordDao = database.userSpeciesRecordDao()
             val fishingRecordDao = database.fishingRecordDao()
+
+            // 삭제 등으로 낡아진 도감 기록(예: 이미 지워진 기록을 가리키는 항목)을
+            // 화면을 그리기 전에 실제 기록 기준으로 다시 계산해 스스로 치유한다.
+            val existingRecordSpeciesIds = userSpeciesRecordDao.getAll().first().map { it.speciesId }
+            existingRecordSpeciesIds.forEach { speciesId ->
+                SpeciesRecordSync.recalculate(database, speciesId)
+            }
 
             val entries = speciesDao.getAll().first().map { species ->
                 val userRecord = userSpeciesRecordDao.getBySpeciesId(species.id)
