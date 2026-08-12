@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.nakcive.app.data.REGION_TAGS
 import com.nakcive.app.ui.camera.CameraCaptureScreen
 import com.nakcive.app.ui.camera.getCurrentLocation
 import kotlinx.coroutines.launch
@@ -152,6 +155,17 @@ fun AddRecordScreen(
                     )
                 }
                 Text(text = "위치가 기록되었습니다", fontSize = 14.sp)
+
+                Text(text = "지역", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    REGION_TAGS.forEach { region ->
+                        FilterChip(
+                            selected = uiState.regionTag == region,
+                            onClick = { viewModel.onRegionTagChange(region) },
+                            label = { Text(region) },
+                        )
+                    }
+                }
 
                 OutlinedTextField(
                     value = uiState.speciesName,

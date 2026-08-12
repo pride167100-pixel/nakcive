@@ -77,7 +77,7 @@ private fun RecordRow(record: FishingRecord) {
             RecordThumbnail(photoPath = record.photoPath)
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
-                    text = record.customSpeciesName ?: "어종 미입력",
+                    text = "${record.customSpeciesName ?: "어종 미입력"}  (${record.regionTag})",
                     fontWeight = FontWeight.Bold,
                 )
                 Text(

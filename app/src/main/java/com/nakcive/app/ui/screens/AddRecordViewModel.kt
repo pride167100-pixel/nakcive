@@ -3,6 +3,7 @@ package com.nakcive.app.ui.screens
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.nakcive.app.data.DEFAULT_REGION_TAG
 import com.nakcive.app.data.NakciveDatabase
 import com.nakcive.app.data.entity.FishingRecord
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ data class AddRecordUiState(
     val weightKg: String = "",
     val fishingMethod: String = "",
     val memo: String = "",
+    val regionTag: String = DEFAULT_REGION_TAG,
     val isSaving: Boolean = false,
     val saveCompleted: Boolean = false,
 )
@@ -50,6 +52,10 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(memo = value) }
     }
 
+    fun onRegionTagChange(value: String) {
+        _uiState.update { it.copy(regionTag = value) }
+    }
+
     fun setCapturedPhoto(path: String, latitude: Double, longitude: Double) {
         _uiState.update { it.copy(photoPath = path, latitude = latitude, longitude = longitude) }
     }
@@ -72,7 +78,7 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
                     sizeCm = state.sizeCm.toDoubleOrNull(),
                     weightKg = state.weightKg.toDoubleOrNull(),
                     memo = state.memo.ifBlank { null },
-                    regionTag = "남해",
+                    regionTag = state.regionTag,
                 )
             )
             _uiState.update { it.copy(isSaving = false, saveCompleted = true) }
