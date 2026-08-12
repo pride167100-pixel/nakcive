@@ -35,9 +35,16 @@ object TideApi {
 
     suspend fun fetchTideInfo(obsCode: String): TideInfo? = withContext(Dispatchers.IO) {
         try {
+            val today = run {
+                val now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul"))
+                val year = now.get(Calendar.YEAR)
+                val month = now.get(Calendar.MONTH) + 1
+                val day = now.get(Calendar.DAY_OF_MONTH)
+                "%04d%02d%02d".format(year, month, day)
+            }
             val url = "https://apis.data.go.kr/1192136/tideFcstTime/GetTideFcstTimeApiService" +
                 "?serviceKey=${URLEncoder.encode(SERVICE_KEY, "UTF-8")}" +
-                "&obsCode=$obsCode&numOfRows=1440&pageNo=1"
+                "&obsCode=$obsCode&Date=$today&numOfRows=1440&pageNo=1"
             val request = Request.Builder().url(url).build()
             client.newCall(request).execute().use { response ->
                 val body = response.body?.string() ?: return@withContext null
