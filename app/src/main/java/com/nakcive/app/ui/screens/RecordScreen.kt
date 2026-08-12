@@ -82,8 +82,13 @@ private fun RecordRow(record: FishingRecord, onClick: () -> Unit) {
         Row(modifier = Modifier.padding(12.dp)) {
             RecordThumbnail(photoPath = record.photoPath)
             Column(modifier = Modifier.padding(start = 12.dp)) {
+                val locationLabel = record.address
+                    ?.trim()
+                    ?.split(" ")
+                    ?.lastOrNull { it.isNotBlank() }
+                    ?: record.regionTag
                 Text(
-                    text = "${record.customSpeciesName ?: "어종 미입력"}  (${record.regionTag})",
+                    text = "${record.customSpeciesName ?: "어종 미입력"}  ($locationLabel)",
                     fontWeight = FontWeight.Bold,
                 )
                 Text(

@@ -15,17 +15,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.nakcive.app.data.REGION_TAGS
 
 @Composable
 fun SpeciesScreen(
@@ -44,27 +38,13 @@ fun SpeciesScreen(
     viewModel: SpeciesViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedRegion by remember { mutableStateOf(REGION_TAGS.first()) }
 
-    LaunchedEffect(selectedRegion) {
-        viewModel.loadRegion(selectedRegion)
+    LaunchedEffect(Unit) {
+        viewModel.load()
     }
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(text = "도감", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-
-        TabRow(
-            selectedTabIndex = REGION_TAGS.indexOf(selectedRegion),
-            modifier = Modifier.padding(top = 8.dp),
-        ) {
-            REGION_TAGS.forEach { region ->
-                Tab(
-                    selected = selectedRegion == region,
-                    onClick = { selectedRegion = region },
-                    text = { Text(region) },
-                )
-            }
-        }
 
         if (uiState.entries.isEmpty()) {
             Box(

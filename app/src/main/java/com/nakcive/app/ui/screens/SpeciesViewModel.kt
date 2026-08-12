@@ -9,6 +9,7 @@ import com.nakcive.app.data.entity.UserSpeciesRecord
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -23,12 +24,15 @@ data class SpeciesUiState(
     val isLoading: Boolean = true,
 )
 
-private fun seedSpecies(): List<Species> = listOf(
-    "우럭" to "서해", "광어" to "서해", "숭어" to "서해", "농어" to "서해", "주꾸미" to "서해",
-    "감성돔" to "남해", "벵에돔" to "남해", "참돔" to "남해", "돌돔" to "남해", "볼락" to "남해",
-    "오징어" to "동해", "방어" to "동해", "열기" to "동해", "도루묵" to "동해", "임연수어" to "동해",
-    "자리돔" to "제주", "벤자리" to "제주", "다금바리" to "제주", "혹돔" to "제주",
-).map { (name, region) ->
+private val SEED_SPECIES_NAMES = listOf(
+    "감성돔", "참돔", "돌돔", "벵에돔", "벤자리", "혹돔", "다금바리", "능성어",
+    "우럭(조피볼락)", "광어(넙치)", "숭어", "농어", "도다리", "노래미", "볼락", "열기(불볼락)", "쏨뱅이",
+    "붕장어", "갯장어", "문어", "주꾸미", "낙지", "갑오징어", "무늬오징어", "살오징어",
+    "방어", "부시리", "삼치", "전갱이", "고등어", "전어", "갈치", "병어", "준치",
+    "임연수어", "도루묵", "자리돔", "학꽁치", "청어", "쥐치",
+)
+
+private fun seedSpecies(): List<Species> = SEED_SPECIES_NAMES.map { name ->
     Species(
         commonName = name,
         scientificName = null,
@@ -37,7 +41,7 @@ private fun seedSpecies(): List<Species> = listOf(
         description = null,
         ecology = null,
         habitat = null,
-        regionDistribution = region,
+        regionDistribution = null,
         minLegalSize = null,
         closedSeasonStart = null,
         closedSeasonEnd = null,
@@ -51,19 +55,21 @@ class SpeciesViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(SpeciesUiState())
     val uiState: StateFlow<SpeciesUiState> = _uiState.asStateFlow()
 
-    fun loadRegion(region: String) {
+    fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
             val speciesDao = database.speciesDao()
-            if (speciesDao.count() == 0) {
-                speciesDao.insertAll(seedSpecies())
+            val existingNames = speciesDao.getAll().first().map { it.commonName }.toSet()
+            val missingSeed = seedSpecies().filter { it.commonName !in existingNames }
+            if (missingSeed.isNotEmpty()) {
+                speciesDao.insertAll(missingSeed)
             }
 
             val userSpeciesRecordDao = database.userSpeciesRecordDao()
             val fishingRecordDao = database.fishingRecordDao()
 
-            val entries = speciesDao.getByRegion(region).map { species ->
+            val entries = speciesDao.getAll().first().map { species ->
                 val userRecord = userSpeciesRecordDao.getBySpeciesId(species.id)
                 val bestPhotoPath = userRecord?.maxRecordId?.let { fishingRecordDao.getById(it)?.photoPath }
                 SpeciesEntry(species, userRecord, bestPhotoPath)
