@@ -12,14 +12,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -38,9 +45,14 @@ fun RecordDetailScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(recordId) {
         viewModel.load(recordId)
+    }
+
+    LaunchedEffect(uiState.deleted) {
+        if (uiState.deleted) onBack()
     }
 
     val record = uiState.record
@@ -82,7 +94,6 @@ fun RecordDetailScreen(
         }
 
         Text(text = "대표정보", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
-        Text(text = "지역: ${record.regionTag}")
         Text(
             text = "위치: ${record.address ?: "주소 확인 불가 (탭하면 지도로 보기)"}",
             textDecoration = TextDecoration.Underline,
@@ -112,13 +123,38 @@ fun RecordDetailScreen(
         Text(text = "풍속: ${detail?.windSpeed?.let { "${it}m/s" } ?: "미확인"}")
         Text(text = "파고: ${detail?.waveHeight?.let { "${it}m" } ?: "미확인"}")
 
-        TextButton(
-            onClick = onBack,
+        Button(
+            onClick = { showDeleteDialog = true },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E)),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
         ) {
+            Text("삭제")
+        }
+        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
             Text("뒤로가기")
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("삭제하시겠습니까?") },
+            text = { Text("되돌릴 수 없습니다.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    viewModel.delete()
+                }) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("취소")
+                }
+            },
+        )
     }
 }

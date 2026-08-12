@@ -16,6 +16,7 @@ data class RecordDetailUiState(
     val record: FishingRecord? = null,
     val detail: RecordDetail? = null,
     val isLoading: Boolean = true,
+    val deleted: Boolean = false,
 )
 
 class RecordDetailViewModel(application: Application) : AndroidViewModel(application) {
@@ -29,6 +30,14 @@ class RecordDetailViewModel(application: Application) : AndroidViewModel(applica
             val record = database.fishingRecordDao().getById(recordId)
             val detail = database.recordDetailDao().getByRecordId(recordId)
             _uiState.update { it.copy(record = record, detail = detail, isLoading = false) }
+        }
+    }
+
+    fun delete() {
+        val record = _uiState.value.record ?: return
+        viewModelScope.launch {
+            database.fishingRecordDao().delete(record)
+            _uiState.update { it.copy(deleted = true) }
         }
     }
 }
