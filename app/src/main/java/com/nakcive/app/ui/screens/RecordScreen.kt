@@ -1,7 +1,5 @@
 package com.nakcive.app.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +34,7 @@ import com.nakcive.app.data.entity.FishingRecord
 @Composable
 fun RecordScreen(
     onBack: () -> Unit,
+    onRecordClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RecordViewModel = viewModel(),
 ) {
@@ -63,7 +61,7 @@ fun RecordScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(records) { record ->
-                    RecordRow(record)
+                    RecordRow(record, onClick = { onRecordClick(record.id) })
                 }
             }
         }
@@ -75,20 +73,11 @@ fun RecordScreen(
 }
 
 @Composable
-private fun RecordRow(record: FishingRecord) {
-    val context = LocalContext.current
-
+private fun RecordRow(record: FishingRecord, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                val label = record.customSpeciesName ?: "낚시 기록"
-                val uri = Uri.parse(
-                    "geo:${record.latitude},${record.longitude}" +
-                        "?q=${record.latitude},${record.longitude}($label)",
-                )
-                context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-            },
+            .clickable(onClick = onClick),
     ) {
         Row(modifier = Modifier.padding(12.dp)) {
             RecordThumbnail(photoPath = record.photoPath)
@@ -102,7 +91,7 @@ private fun RecordRow(record: FishingRecord) {
                         "무게: ${record.weightKg?.let { "${it}kg" } ?: "-"}"
                 )
                 Text(text = "낚시법: ${record.fishingMethod.ifBlank { "-" }}")
-                Text(text = "위치: ${record.address ?: "지도에서 보기 (탭)"}")
+                Text(text = "위치: ${record.address ?: "-"}")
                 if (!record.memo.isNullOrBlank()) {
                     Text(text = "메모: ${record.memo}")
                 }
