@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.nakcive.app.data.DEFAULT_REGION_TAG
 import com.nakcive.app.data.NakciveDatabase
 import com.nakcive.app.data.entity.FishingRecord
+import com.nakcive.app.data.regionTagFromLocation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,12 +53,15 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(memo = value) }
     }
 
-    fun onRegionTagChange(value: String) {
-        _uiState.update { it.copy(regionTag = value) }
-    }
-
     fun setCapturedPhoto(path: String, latitude: Double, longitude: Double) {
-        _uiState.update { it.copy(photoPath = path, latitude = latitude, longitude = longitude) }
+        _uiState.update {
+            it.copy(
+                photoPath = path,
+                latitude = latitude,
+                longitude = longitude,
+                regionTag = regionTagFromLocation(latitude, longitude),
+            )
+        }
     }
 
     fun save() {
