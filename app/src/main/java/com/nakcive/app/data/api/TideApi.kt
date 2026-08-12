@@ -28,6 +28,12 @@ private data class TidePoint(val minuteOfDay: Int, val heightCm: Double)
  * 3등분해서 단계를 나눔 — 공식 기준이 아닌 단순화된 근사치.
  */
 object TideApi {
+    // 공공데이터포털 tideFcstTime API는 한 번에 최대 200개 행까지만 허용한다
+    // (numOfRows=500/999/1440은 INVALID_REQUEST_PARAMETER_ERROR로 거부됨, 실측 확인).
+    // 하루치(1440분) 전체를 얻으려면 200개씩 여러 페이지로 나눠 요청해서 이어붙여야 한다.
+    private const val PAGE_SIZE = 200
+    private const val MAX_PAGES = 8 // 200 * 8 = 1600 ≥ 1440분(하루)
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(8, TimeUnit.SECONDS)
@@ -42,28 +48,37 @@ object TideApi {
                 val day = now.get(Calendar.DAY_OF_MONTH)
                 "%04d%02d%02d".format(year, month, day)
             }
-            val url = "https://apis.data.go.kr/1192136/tideFcstTime/GetTideFcstTimeApiService" +
-                "?serviceKey=${URLEncoder.encode(SERVICE_KEY, "UTF-8")}" +
-                "&obsCode=$obsCode&Date=$today&numOfRows=1440&pageNo=1"
-            val request = Request.Builder().url(url).build()
-            client.newCall(request).execute().use { response ->
-                val body = response.body?.string() ?: return@withContext null
-                val (points, stationName) = parseTidePoints(body)
-                if (points.isEmpty()) return@withContext null
 
-                val nowMinute = run {
-                    val now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul"))
-                    now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-                }
-                val nowIndex = points.indexOfFirst { it.minuteOfDay >= nowMinute }
-                    .let { if (it == -1) points.lastIndex else it }
-
-                TideInfo(
-                    phase = computeTidePhase(points, nowIndex),
-                    levelCm = points[nowIndex].heightCm,
-                    stationName = stationName,
-                )
+            val allPoints = mutableListOf<TidePoint>()
+            var stationName: String? = null
+            var page = 1
+            while (page <= MAX_PAGES) {
+                val url = "https://apis.data.go.kr/1192136/tideFcstTime/GetTideFcstTimeApiService" +
+                    "?serviceKey=${URLEncoder.encode(SERVICE_KEY, "UTF-8")}" +
+                    "&obsCode=$obsCode&Date=$today&numOfRows=$PAGE_SIZE&pageNo=$page"
+                val request = Request.Builder().url(url).build()
+                val body = client.newCall(request).execute().use { it.body?.string() } ?: break
+                val (points, name) = parseTidePoints(body)
+                if (points.isEmpty()) break
+                allPoints.addAll(points)
+                if (stationName == null) stationName = name
+                if (points.size < PAGE_SIZE) break // 마지막 페이지
+                page++
             }
+            if (allPoints.isEmpty()) return@withContext null
+
+            val nowMinute = run {
+                val now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul"))
+                now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+            }
+            val nowIndex = allPoints.indexOfFirst { it.minuteOfDay >= nowMinute }
+                .let { if (it == -1) allPoints.lastIndex else it }
+
+            TideInfo(
+                phase = computeTidePhase(allPoints, nowIndex),
+                levelCm = allPoints[nowIndex].heightCm,
+                stationName = stationName,
+            )
         } catch (_: Exception) {
             null
         }
