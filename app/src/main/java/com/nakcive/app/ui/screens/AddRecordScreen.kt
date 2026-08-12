@@ -43,6 +43,7 @@ import com.nakcive.app.data.ObservationStationRepository
 import com.nakcive.app.data.api.KmaForecastApi
 import com.nakcive.app.data.api.KmaGrid
 import com.nakcive.app.data.api.MarineDataApi
+import com.nakcive.app.data.api.TideApi
 import com.nakcive.app.ui.camera.CameraCaptureScreen
 import com.nakcive.app.ui.camera.getCurrentLocation
 import com.nakcive.app.ui.camera.reverseGeocode
@@ -172,12 +173,20 @@ fun AddRecordScreen(
                             null
                         }
 
+                        val tideStation = if (location != null) {
+                            ObservationStationRepository.findNearest(context, latitude, longitude, "DT_")
+                        } else {
+                            null
+                        }
+                        val tideInfo = tideStation?.let { TideApi.fetchTideInfo(it.code) }
+
                         viewModel.setCapturedPhoto(
                             path = photoUri.toString(),
                             latitude = latitude,
                             longitude = longitude,
                             address = address,
                             weatherSnapshot = weatherSnapshot,
+                            tideInfo = tideInfo,
                         )
                         step = AddRecordStep.FORM
                     }
@@ -219,6 +228,9 @@ fun AddRecordScreen(
                             "(${weather.sourceLabel})",
                         fontSize = 13.sp,
                     )
+                }
+                uiState.tideInfo?.phase?.let { phase ->
+                    Text(text = "물때: $phase", fontSize = 13.sp)
                 }
 
                 OutlinedTextField(

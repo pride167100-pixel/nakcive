@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nakcive.app.data.DEFAULT_REGION_TAG
 import com.nakcive.app.data.NakciveDatabase
+import com.nakcive.app.data.api.TideInfo
 import com.nakcive.app.data.api.degreesToCompass
 import com.nakcive.app.data.entity.FishingRecord
 import com.nakcive.app.data.entity.RecordDetail
@@ -32,6 +33,7 @@ data class AddRecordUiState(
     val longitude: Double = 0.0,
     val address: String? = null,
     val weatherSnapshot: WeatherSnapshot? = null,
+    val tideInfo: TideInfo? = null,
     val speciesName: String = "",
     val sizeCm: String = "",
     val weightKg: String = "",
@@ -75,6 +77,7 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
         longitude: Double,
         address: String?,
         weatherSnapshot: WeatherSnapshot?,
+        tideInfo: TideInfo?,
     ) {
         _uiState.update {
             it.copy(
@@ -83,6 +86,7 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
                 longitude = longitude,
                 address = address,
                 weatherSnapshot = weatherSnapshot,
+                tideInfo = tideInfo,
                 regionTag = regionTagFromLocation(latitude, longitude),
             )
         }
@@ -110,8 +114,8 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
                     address = state.address,
                     recordedAt = System.currentTimeMillis(),
                     fishingMethod = state.fishingMethod,
-                    tideLevel = null,
-                    tidePhase = null,
+                    tideLevel = state.tideInfo?.levelCm,
+                    tidePhase = state.tideInfo?.phase,
                     speciesId = speciesId,
                     customSpeciesName = speciesName.ifEmpty { null },
                     sizeCm = sizeCm,
@@ -125,18 +129,19 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
                 updateUserSpeciesRecord(speciesId, recordId, sizeCm, weightKg)
             }
 
-            state.weatherSnapshot?.let { weather ->
+            if (state.weatherSnapshot != null || state.tideInfo != null) {
+                val weather = state.weatherSnapshot
                 database.recordDetailDao().insert(
                     RecordDetail(
                         recordId = recordId,
-                        waterTemp = weather.waterTempC,
-                        waveHeight = weather.waveHeightM,
-                        windDir = weather.windDirectionDeg?.let { degreesToCompass(it) },
-                        windSpeed = weather.windSpeedMs,
-                        airTemp = weather.airTempC,
+                        waterTemp = weather?.waterTempC,
+                        waveHeight = weather?.waveHeightM,
+                        windDir = weather?.windDirectionDeg?.let { degreesToCompass(it) },
+                        windSpeed = weather?.windSpeedMs,
+                        airTemp = weather?.airTempC,
                         humidity = null,
-                        obsStationTide = null,
-                        obsStationWeather = weather.sourceLabel,
+                        obsStationTide = state.tideInfo?.stationName,
+                        obsStationWeather = weather?.sourceLabel,
                         fishingIndexAtRecord = null,
                     )
                 )

@@ -1,6 +1,7 @@
 package com.nakcive.app.data.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -15,6 +16,9 @@ interface UserSpeciesRecordDao {
 
     @Update
     suspend fun update(record: UserSpeciesRecord)
+
+    @Delete
+    suspend fun delete(record: UserSpeciesRecord)
 
     @Query("SELECT * FROM user_species_records WHERE speciesId = :speciesId")
     suspend fun getBySpeciesId(speciesId: Long): UserSpeciesRecord?
