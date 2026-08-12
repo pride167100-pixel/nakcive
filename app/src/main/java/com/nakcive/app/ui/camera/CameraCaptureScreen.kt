@@ -18,14 +18,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import android.widget.Toast
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -38,6 +43,7 @@ fun CameraCaptureScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val imageCapture = remember { ImageCapture.Builder().build() }
+    var isProcessing by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -58,7 +64,7 @@ fun CameraCaptureScreen(
                             imageCapture,
                         )
                     } catch (_: Exception) {
-                        // 카메라 연결 실패: 사용자가 취소하고 다시 시도할 수 있음
+                        Toast.makeText(ctx, "카메라를 열 수 없습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
                     }
                 }, ContextCompat.getMainExecutor(ctx))
                 previewView
@@ -72,29 +78,51 @@ fun CameraCaptureScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Button(onClick = {
-                val outputOptions = ImageCapture.OutputFileOptions.Builder(
-                    context.contentResolver,
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    createImageContentValues(),
-                ).build()
-                imageCapture.takePicture(
-                    outputOptions,
-                    ContextCompat.getMainExecutor(context),
-                    object : ImageCapture.OnImageSavedCallback {
-                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            output.savedUri?.let(onPhotoCaptured)
-                        }
+            if (isProcessing) {
+                Text("위치 확인 중... 잠시만 기다려주세요", color = Color.White)
+            }
+            Button(
+                enabled = !isProcessing,
+                onClick = {
+                    isProcessing = true
+                    val outputOptions = ImageCapture.OutputFileOptions.Builder(
+                        context.contentResolver,
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        createImageContentValues(),
+                    ).build()
+                    imageCapture.takePicture(
+                        outputOptions,
+                        ContextCompat.getMainExecutor(context),
+                        object : ImageCapture.OnImageSavedCallback {
+                            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                val savedUri = output.savedUri
+                                if (savedUri != null) {
+                                    onPhotoCaptured(savedUri)
+                                } else {
+                                    isProcessing = false
+                                    Toast.makeText(
+                                        context,
+                                        "사진 저장에 실패했습니다. 다시 시도해주세요.",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            }
 
-                        override fun onError(exception: ImageCaptureException) {
-                            // 촬영 실패: 사용자가 다시 촬영 버튼을 누르면 됨
-                        }
-                    },
-                )
-            }) {
+                            override fun onError(exception: ImageCaptureException) {
+                                isProcessing = false
+                                Toast.makeText(
+                                    context,
+                                    "사진 저장에 실패했습니다. 다시 시도해주세요.",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        },
+                    )
+                },
+            ) {
                 Text("촬영")
             }
-            TextButton(onClick = onCancel) {
+            TextButton(onClick = onCancel, enabled = !isProcessing) {
                 Text("취소")
             }
         }
