@@ -17,6 +17,7 @@ data class AddRecordUiState(
     val photoPath: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
+    val address: String? = null,
     val speciesName: String = "",
     val sizeCm: String = "",
     val weightKg: String = "",
@@ -53,12 +54,13 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(memo = value) }
     }
 
-    fun setCapturedPhoto(path: String, latitude: Double, longitude: Double) {
+    fun setCapturedPhoto(path: String, latitude: Double, longitude: Double, address: String?) {
         _uiState.update {
             it.copy(
                 photoPath = path,
                 latitude = latitude,
                 longitude = longitude,
+                address = address,
                 regionTag = regionTagFromLocation(latitude, longitude),
             )
         }
@@ -73,6 +75,7 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
                     photoPath = state.photoPath,
                     latitude = state.latitude,
                     longitude = state.longitude,
+                    address = state.address,
                     recordedAt = System.currentTimeMillis(),
                     fishingMethod = state.fishingMethod,
                     tideLevel = null,

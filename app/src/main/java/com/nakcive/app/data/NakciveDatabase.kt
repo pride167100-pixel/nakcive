@@ -23,7 +23,7 @@ import com.nakcive.app.data.entity.UserSpeciesRecord
         UserSpeciesRecord::class,
         Tag::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class NakciveDatabase : RoomDatabase() {
@@ -43,7 +43,7 @@ abstract class NakciveDatabase : RoomDatabase() {
                     context.applicationContext,
                     NakciveDatabase::class.java,
                     "nakcive.db",
-                ).build().also { INSTANCE = it }
+                ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
             }
         }
     }

@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.nakcive.app.ui.camera.CameraCaptureScreen
 import com.nakcive.app.ui.camera.getCurrentLocation
+import com.nakcive.app.ui.camera.reverseGeocode
 import kotlinx.coroutines.launch
 
 private enum class AddRecordStep { PERMISSION, CAMERA, FORM }
@@ -118,10 +119,18 @@ fun AddRecordScreen(
                 onPhotoCaptured = { photoUri ->
                     coroutineScope.launch {
                         val location = getCurrentLocation(context)
+                        val latitude = location?.latitude ?: 0.0
+                        val longitude = location?.longitude ?: 0.0
+                        val address = if (location != null) {
+                            reverseGeocode(context, latitude, longitude)
+                        } else {
+                            null
+                        }
                         viewModel.setCapturedPhoto(
                             path = photoUri.toString(),
-                            latitude = location?.latitude ?: 0.0,
-                            longitude = location?.longitude ?: 0.0,
+                            latitude = latitude,
+                            longitude = longitude,
+                            address = address,
                         )
                         step = AddRecordStep.FORM
                     }
@@ -151,7 +160,11 @@ fun AddRecordScreen(
                         contentScale = ContentScale.Crop,
                     )
                 }
-                Text(text = "위치가 기록되었습니다 (지역: ${uiState.regionTag})", fontSize = 14.sp)
+                Text(
+                    text = uiState.address?.let { "위치: $it" }
+                        ?: "위치가 기록되었습니다 (지역: ${uiState.regionTag})",
+                    fontSize = 14.sp,
+                )
 
                 OutlinedTextField(
                     value = uiState.speciesName,

@@ -10,6 +10,7 @@ data class FishingRecord(
     val photoPath: String,
     val latitude: Double,
     val longitude: Double,
+    val address: String?,
     val recordedAt: Long,
     val fishingMethod: String,
     val tideLevel: Double?,
