@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.nakcive.app.data.DEFAULT_REGION_TAG
 import com.nakcive.app.data.NakciveDatabase
 import com.nakcive.app.data.entity.FishingRecord
+import com.nakcive.app.data.entity.Species
+import com.nakcive.app.data.entity.UserSpeciesRecord
 import com.nakcive.app.data.regionTagFromLocation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +31,8 @@ data class AddRecordUiState(
 )
 
 class AddRecordViewModel(application: Application) : AndroidViewModel(application) {
-    private val fishingRecordDao = NakciveDatabase.getInstance(application).fishingRecordDao()
+    private val database = NakciveDatabase.getInstance(application)
+    private val fishingRecordDao = database.fishingRecordDao()
 
     private val _uiState = MutableStateFlow(AddRecordUiState())
     val uiState: StateFlow<AddRecordUiState> = _uiState.asStateFlow()
@@ -70,7 +73,17 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
-            fishingRecordDao.insert(
+
+            val speciesName = state.speciesName.trim()
+            val sizeCm = state.sizeCm.toDoubleOrNull()
+            val weightKg = state.weightKg.toDoubleOrNull()
+            val speciesId = if (speciesName.isNotEmpty()) {
+                resolveSpeciesId(speciesName, state.regionTag)
+            } else {
+                null
+            }
+
+            val recordId = fishingRecordDao.insert(
                 FishingRecord(
                     photoPath = state.photoPath,
                     latitude = state.latitude,
@@ -80,16 +93,62 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
                     fishingMethod = state.fishingMethod,
                     tideLevel = null,
                     tidePhase = null,
-                    speciesId = null,
-                    customSpeciesName = state.speciesName.ifBlank { null },
-                    sizeCm = state.sizeCm.toDoubleOrNull(),
-                    weightKg = state.weightKg.toDoubleOrNull(),
+                    speciesId = speciesId,
+                    customSpeciesName = speciesName.ifEmpty { null },
+                    sizeCm = sizeCm,
+                    weightKg = weightKg,
                     memo = state.memo.ifBlank { null },
                     regionTag = state.regionTag,
                 )
             )
+
+            if (speciesId != null) {
+                updateUserSpeciesRecord(speciesId, recordId, sizeCm, weightKg)
+            }
+
             _uiState.update { it.copy(isSaving = false, saveCompleted = true) }
         }
+    }
+
+    private suspend fun resolveSpeciesId(name: String, region: String): Long {
+        val speciesDao = database.speciesDao()
+        return speciesDao.getByCommonName(name)?.id ?: speciesDao.insert(
+            Species(
+                commonName = name,
+                scientificName = null,
+                family = null,
+                order = null,
+                description = null,
+                ecology = null,
+                habitat = null,
+                regionDistribution = region,
+                minLegalSize = null,
+                closedSeasonStart = null,
+                closedSeasonEnd = null,
+                imagePath = null,
+            )
+        )
+    }
+
+    private suspend fun updateUserSpeciesRecord(
+        speciesId: Long,
+        recordId: Long,
+        sizeCm: Double?,
+        weightKg: Double?,
+    ) {
+        val dao = database.userSpeciesRecordDao()
+        val existing = dao.getBySpeciesId(speciesId)
+        val isNewBest = sizeCm != null && (existing?.maxSizeCm == null || sizeCm > existing.maxSizeCm)
+        dao.upsert(
+            UserSpeciesRecord(
+                speciesId = speciesId,
+                maxSizeCm = if (isNewBest) sizeCm else existing?.maxSizeCm,
+                maxWeightKg = if (isNewBest) weightKg else (existing?.maxWeightKg ?: weightKg),
+                maxRecordId = if (isNewBest || existing == null) recordId else existing.maxRecordId,
+                firstCaughtAt = existing?.firstCaughtAt ?: System.currentTimeMillis(),
+                catchCount = (existing?.catchCount ?: 0) + 1,
+            )
+        )
     }
 
     fun resetSaveCompleted() {

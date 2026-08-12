@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SpeciesDao {
+    @Insert
+    suspend fun insert(species: Species): Long
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(species: List<Species>)
 
@@ -17,4 +20,13 @@ interface SpeciesDao {
 
     @Query("SELECT * FROM species WHERE id = :id")
     suspend fun getById(id: Long): Species?
+
+    @Query("SELECT * FROM species WHERE commonName = :name LIMIT 1")
+    suspend fun getByCommonName(name: String): Species?
+
+    @Query("SELECT * FROM species WHERE regionDistribution = :region ORDER BY commonName")
+    suspend fun getByRegion(region: String): List<Species>
+
+    @Query("SELECT COUNT(*) FROM species")
+    suspend fun count(): Int
 }
