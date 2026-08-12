@@ -119,9 +119,17 @@ fun RecordDetailScreen(
         Text(text = "세부정보", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
         val detail = uiState.detail
         Text(text = "수온: ${detail?.waterTemp?.let { "${it}°C" } ?: "미확인"}")
+        Text(text = "기온: ${detail?.airTemp?.let { "${it}°C" } ?: "미확인"}")
         Text(text = "풍향: ${detail?.windDir ?: "미확인"}")
         Text(text = "풍속: ${detail?.windSpeed?.let { "${it}m/s" } ?: "미확인"}")
         Text(text = "파고: ${detail?.waveHeight?.let { "${it}m" } ?: "미확인"}")
+        if (!detail?.obsStationWeather.isNullOrBlank()) {
+            Text(
+                text = "관측소: ${detail?.obsStationWeather}",
+                fontSize = 12.sp,
+                color = Color.Gray,
+            )
+        }
 
         Button(
             onClick = { showDeleteDialog = true },

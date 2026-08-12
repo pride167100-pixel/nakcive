@@ -92,7 +92,7 @@ fun CameraCaptureScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (isProcessing) {
-                Text("위치 확인 중... 잠시만 기다려주세요", color = Color.White)
+                Text("위치·날씨 확인 중... 잠시만 기다려주세요", color = Color.White)
             }
             Button(
                 enabled = !isProcessing,

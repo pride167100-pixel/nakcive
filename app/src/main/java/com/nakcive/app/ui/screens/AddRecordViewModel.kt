@@ -5,7 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nakcive.app.data.DEFAULT_REGION_TAG
 import com.nakcive.app.data.NakciveDatabase
+import com.nakcive.app.data.api.BuoyObservation
+import com.nakcive.app.data.api.degreesToCompass
 import com.nakcive.app.data.entity.FishingRecord
+import com.nakcive.app.data.entity.RecordDetail
 import com.nakcive.app.data.entity.Species
 import com.nakcive.app.data.entity.UserSpeciesRecord
 import com.nakcive.app.data.regionTagFromLocation
@@ -20,6 +23,8 @@ data class AddRecordUiState(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val address: String? = null,
+    val buoyObservation: BuoyObservation? = null,
+    val buoyStationCode: String? = null,
     val speciesName: String = "",
     val sizeCm: String = "",
     val weightKg: String = "",
@@ -57,13 +62,22 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(memo = value) }
     }
 
-    fun setCapturedPhoto(path: String, latitude: Double, longitude: Double, address: String?) {
+    fun setCapturedPhoto(
+        path: String,
+        latitude: Double,
+        longitude: Double,
+        address: String?,
+        buoyObservation: BuoyObservation?,
+        buoyStationCode: String?,
+    ) {
         _uiState.update {
             it.copy(
                 photoPath = path,
                 latitude = latitude,
                 longitude = longitude,
                 address = address,
+                buoyObservation = buoyObservation,
+                buoyStationCode = buoyStationCode,
                 regionTag = regionTagFromLocation(latitude, longitude),
             )
         }
@@ -104,6 +118,23 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
 
             if (speciesId != null) {
                 updateUserSpeciesRecord(speciesId, recordId, sizeCm, weightKg)
+            }
+
+            state.buoyObservation?.let { observation ->
+                database.recordDetailDao().insert(
+                    RecordDetail(
+                        recordId = recordId,
+                        waterTemp = observation.waterTempC,
+                        waveHeight = observation.waveHeightM,
+                        windDir = observation.windDirectionDeg?.let { degreesToCompass(it) },
+                        windSpeed = observation.windSpeedMs,
+                        airTemp = observation.airTempC,
+                        humidity = null,
+                        obsStationTide = null,
+                        obsStationWeather = observation.stationName,
+                        fishingIndexAtRecord = null,
+                    )
+                )
             }
 
             _uiState.update { it.copy(isSaving = false, saveCompleted = true) }

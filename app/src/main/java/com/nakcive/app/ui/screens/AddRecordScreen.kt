@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.nakcive.app.data.ObservationStationRepository
+import com.nakcive.app.data.api.MarineDataApi
 import com.nakcive.app.ui.camera.CameraCaptureScreen
 import com.nakcive.app.ui.camera.getCurrentLocation
 import com.nakcive.app.ui.camera.reverseGeocode
@@ -126,11 +128,21 @@ fun AddRecordScreen(
                         } else {
                             null
                         }
+                        val buoyStation = if (location != null) {
+                            ObservationStationRepository.findNearest(context, latitude, longitude, "TW_")
+                        } else {
+                            null
+                        }
+                        val buoyObservation = buoyStation?.let {
+                            MarineDataApi.fetchLatestBuoyObservation(it.code)
+                        }
                         viewModel.setCapturedPhoto(
                             path = photoUri.toString(),
                             latitude = latitude,
                             longitude = longitude,
                             address = address,
+                            buoyObservation = buoyObservation,
+                            buoyStationCode = buoyStation?.code,
                         )
                         step = AddRecordStep.FORM
                     }
@@ -165,6 +177,14 @@ fun AddRecordScreen(
                         ?: "위치가 기록되었습니다 (지역: ${uiState.regionTag})",
                     fontSize = 14.sp,
                 )
+                uiState.buoyObservation?.let { obs ->
+                    Text(
+                        text = "수온 ${obs.waterTempC?.let { "${it}°C" } ?: "-"} · " +
+                            "파고 ${obs.waveHeightM?.let { "${it}m" } ?: "-"} " +
+                            "(${obs.stationName} 관측)",
+                        fontSize = 13.sp,
+                    )
+                }
 
                 OutlinedTextField(
                     value = uiState.speciesName,
