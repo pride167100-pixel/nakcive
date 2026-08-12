@@ -12,7 +12,7 @@ import org.xmlpull.v1.XmlPullParserFactory
 
 // 공공데이터포털 발급키. 개인용 프로젝트라 코드에 직접 둠 —
 // 나중에 저장소를 공개할 계획이 생기면 키를 새로 발급받아 교체할 것.
-private const val SERVICE_KEY =
+internal const val SERVICE_KEY =
     "rymmiIi8a7nx2RPFaZFB6BAC3IwiuVklOpdAjFQxYhEVCbl2P8PH2XcXRUjOii0ciqNBW/iQmbZ5OLWmtuW96g=="
 
 data class BuoyObservation(
@@ -74,8 +74,8 @@ object MarineDataApi {
                 }
 
                 XmlPullParser.TEXT -> {
-                    if (inItem) {
-                        val text = parser.text
+                    val text = parser.text
+                    if (inItem && text.isNotBlank()) {
                         when (currentTag) {
                             "obsvtrNm" -> stationName = text
                             "obsrvnDt" -> observedAt = text

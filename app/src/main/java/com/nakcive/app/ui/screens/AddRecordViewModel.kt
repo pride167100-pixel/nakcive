@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nakcive.app.data.DEFAULT_REGION_TAG
 import com.nakcive.app.data.NakciveDatabase
-import com.nakcive.app.data.api.BuoyObservation
 import com.nakcive.app.data.api.degreesToCompass
 import com.nakcive.app.data.entity.FishingRecord
 import com.nakcive.app.data.entity.RecordDetail
@@ -18,13 +17,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class WeatherSnapshot(
+    val waterTempC: Double?,
+    val airTempC: Double?,
+    val windDirectionDeg: Double?,
+    val windSpeedMs: Double?,
+    val waveHeightM: Double?,
+    val sourceLabel: String,
+)
+
 data class AddRecordUiState(
     val photoPath: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val address: String? = null,
-    val buoyObservation: BuoyObservation? = null,
-    val buoyStationCode: String? = null,
+    val weatherSnapshot: WeatherSnapshot? = null,
     val speciesName: String = "",
     val sizeCm: String = "",
     val weightKg: String = "",
@@ -67,8 +74,7 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
         latitude: Double,
         longitude: Double,
         address: String?,
-        buoyObservation: BuoyObservation?,
-        buoyStationCode: String?,
+        weatherSnapshot: WeatherSnapshot?,
     ) {
         _uiState.update {
             it.copy(
@@ -76,8 +82,7 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
                 latitude = latitude,
                 longitude = longitude,
                 address = address,
-                buoyObservation = buoyObservation,
-                buoyStationCode = buoyStationCode,
+                weatherSnapshot = weatherSnapshot,
                 regionTag = regionTagFromLocation(latitude, longitude),
             )
         }
@@ -120,18 +125,18 @@ class AddRecordViewModel(application: Application) : AndroidViewModel(applicatio
                 updateUserSpeciesRecord(speciesId, recordId, sizeCm, weightKg)
             }
 
-            state.buoyObservation?.let { observation ->
+            state.weatherSnapshot?.let { weather ->
                 database.recordDetailDao().insert(
                     RecordDetail(
                         recordId = recordId,
-                        waterTemp = observation.waterTempC,
-                        waveHeight = observation.waveHeightM,
-                        windDir = observation.windDirectionDeg?.let { degreesToCompass(it) },
-                        windSpeed = observation.windSpeedMs,
-                        airTemp = observation.airTempC,
+                        waterTemp = weather.waterTempC,
+                        waveHeight = weather.waveHeightM,
+                        windDir = weather.windDirectionDeg?.let { degreesToCompass(it) },
+                        windSpeed = weather.windSpeedMs,
+                        airTemp = weather.airTempC,
                         humidity = null,
                         obsStationTide = null,
-                        obsStationWeather = observation.stationName,
+                        obsStationWeather = weather.sourceLabel,
                         fishingIndexAtRecord = null,
                     )
                 )
