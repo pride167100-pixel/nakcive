@@ -20,10 +20,36 @@ data class SpeciesEntry(
     val bestPhotoPath: String?,
 )
 
+enum class SpeciesSortMode {
+    DEFAULT, CATCH_COUNT, MAX_SIZE, MAX_WEIGHT
+}
+
 data class SpeciesUiState(
     val entries: List<SpeciesEntry> = emptyList(),
     val isLoading: Boolean = true,
+    val sortMode: SpeciesSortMode = SpeciesSortMode.DEFAULT,
 )
+
+private fun sortSpeciesEntries(entries: List<SpeciesEntry>, mode: SpeciesSortMode): List<SpeciesEntry> {
+    return when (mode) {
+        SpeciesSortMode.DEFAULT -> entries.sortedWith(
+            compareByDescending<SpeciesEntry> { (it.userRecord?.catchCount ?: 0) > 0 }
+                .thenBy { it.species.commonName }
+        )
+        SpeciesSortMode.CATCH_COUNT -> entries.sortedWith(
+            compareByDescending<SpeciesEntry> { it.userRecord?.catchCount ?: 0 }
+                .thenBy { it.species.commonName }
+        )
+        SpeciesSortMode.MAX_SIZE -> entries.sortedWith(
+            compareByDescending<SpeciesEntry> { it.userRecord?.maxSizeCm ?: -1.0 }
+                .thenBy { it.species.commonName }
+        )
+        SpeciesSortMode.MAX_WEIGHT -> entries.sortedWith(
+            compareByDescending<SpeciesEntry> { it.userRecord?.maxWeightKg ?: -1.0 }
+                .thenBy { it.species.commonName }
+        )
+    }
+}
 
 private val SEED_SPECIES_NAMES = listOf(
     "감성돔", "참돔", "돌돔", "벵에돔", "벤자리", "혹돔", "다금바리", "능성어",
@@ -56,6 +82,8 @@ class SpeciesViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(SpeciesUiState())
     val uiState: StateFlow<SpeciesUiState> = _uiState.asStateFlow()
 
+    private var rawEntries: List<SpeciesEntry> = emptyList()
+
     fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -77,13 +105,19 @@ class SpeciesViewModel(application: Application) : AndroidViewModel(application)
                 SpeciesRecordSync.recalculate(database, speciesId)
             }
 
-            val entries = speciesDao.getAll().first().map { species ->
+            rawEntries = speciesDao.getAll().first().map { species ->
                 val userRecord = userSpeciesRecordDao.getBySpeciesId(species.id)
                 val bestPhotoPath = userRecord?.maxRecordId?.let { fishingRecordDao.getById(it)?.photoPath }
                 SpeciesEntry(species, userRecord, bestPhotoPath)
             }
 
-            _uiState.update { it.copy(entries = entries, isLoading = false) }
+            _uiState.update {
+                it.copy(entries = sortSpeciesEntries(rawEntries, it.sortMode), isLoading = false)
+            }
         }
+    }
+
+    fun setSortMode(mode: SpeciesSortMode) {
+        _uiState.update { it.copy(entries = sortSpeciesEntries(rawEntries, mode), sortMode = mode) }
     }
 }

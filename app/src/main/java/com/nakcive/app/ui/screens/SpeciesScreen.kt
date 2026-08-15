@@ -1,6 +1,7 @@
 package com.nakcive.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,6 +49,35 @@ fun SpeciesScreen(
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(text = "도감", fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SortModeChip(
+                label = "기본",
+                selected = uiState.sortMode == SpeciesSortMode.DEFAULT,
+                onClick = { viewModel.setSortMode(SpeciesSortMode.DEFAULT) },
+            )
+            SortModeChip(
+                label = "마릿수순",
+                selected = uiState.sortMode == SpeciesSortMode.CATCH_COUNT,
+                onClick = { viewModel.setSortMode(SpeciesSortMode.CATCH_COUNT) },
+            )
+            SortModeChip(
+                label = "최장순",
+                selected = uiState.sortMode == SpeciesSortMode.MAX_SIZE,
+                onClick = { viewModel.setSortMode(SpeciesSortMode.MAX_SIZE) },
+            )
+            SortModeChip(
+                label = "최고무게순",
+                selected = uiState.sortMode == SpeciesSortMode.MAX_WEIGHT,
+                onClick = { viewModel.setSortMode(SpeciesSortMode.MAX_WEIGHT) },
+            )
+        }
+
         if (uiState.entries.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -73,6 +105,15 @@ fun SpeciesScreen(
             Text("뒤로가기")
         }
     }
+}
+
+@Composable
+private fun SortModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+    )
 }
 
 @Composable
