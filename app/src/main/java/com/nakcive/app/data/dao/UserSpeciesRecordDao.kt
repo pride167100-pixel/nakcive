@@ -25,4 +25,7 @@ interface UserSpeciesRecordDao {
 
     @Query("SELECT * FROM user_species_records")
     fun getAll(): Flow<List<UserSpeciesRecord>>
+
+    @Query("DELETE FROM user_species_records")
+    suspend fun deleteAll()
 }

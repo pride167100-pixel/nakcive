@@ -30,4 +30,7 @@ interface FishingRecordDao {
 
     @Query("SELECT * FROM fishing_records WHERE speciesId = :speciesId ORDER BY recordedAt DESC")
     fun getBySpecies(speciesId: Long): Flow<List<FishingRecord>>
+
+    @Query("DELETE FROM fishing_records")
+    suspend fun deleteAll()
 }
