@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +25,8 @@ import com.nakcive.app.ui.screens.RecordScreen
 import com.nakcive.app.ui.screens.SettingsScreen
 import com.nakcive.app.ui.screens.SpeciesScreen
 
+private const val SCREEN_TRANSITION_MS = 220
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,7 +38,31 @@ class MainActivity : ComponentActivity() {
                     NavHost(
                         navController = navController,
                         startDestination = "home",
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        enterTransition = {
+                            slideInHorizontally(
+                                animationSpec = tween(SCREEN_TRANSITION_MS),
+                                initialOffsetX = { fullWidth -> fullWidth },
+                            )
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                animationSpec = tween(SCREEN_TRANSITION_MS),
+                                targetOffsetX = { fullWidth -> -fullWidth / 4 },
+                            )
+                        },
+                        popEnterTransition = {
+                            slideInHorizontally(
+                                animationSpec = tween(SCREEN_TRANSITION_MS),
+                                initialOffsetX = { fullWidth -> -fullWidth / 4 },
+                            )
+                        },
+                        popExitTransition = {
+                            slideOutHorizontally(
+                                animationSpec = tween(SCREEN_TRANSITION_MS),
+                                targetOffsetX = { fullWidth -> fullWidth },
+                            )
+                        },
                     ) {
                         composable("home") {
                             HomeScreen(onNavigate = { route -> navController.navigate(route) })
