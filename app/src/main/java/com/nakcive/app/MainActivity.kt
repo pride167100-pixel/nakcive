@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nakcive.app.ui.screens.AddRecordScreen
+import com.nakcive.app.ui.screens.EditRecordScreen
 import com.nakcive.app.ui.screens.HomeScreen
 import com.nakcive.app.ui.screens.MapScreen
 import com.nakcive.app.ui.screens.RecordDetailScreen
@@ -90,6 +91,17 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val recordId = backStackEntry.arguments?.getLong("recordId") ?: 0L
                             RecordDetailScreen(
+                                recordId = recordId,
+                                onBack = { navController.popBackStack() },
+                                onEdit = { navController.navigate("edit_record/$recordId") },
+                            )
+                        }
+                        composable(
+                            "edit_record/{recordId}",
+                            arguments = listOf(navArgument("recordId") { type = NavType.LongType }),
+                        ) { backStackEntry ->
+                            val recordId = backStackEntry.arguments?.getLong("recordId") ?: 0L
+                            EditRecordScreen(
                                 recordId = recordId,
                                 onBack = { navController.popBackStack() },
                             )

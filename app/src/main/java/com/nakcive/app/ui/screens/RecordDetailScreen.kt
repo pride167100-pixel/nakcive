@@ -49,6 +49,7 @@ import kotlinx.coroutines.launch
 fun RecordDetailScreen(
     recordId: Long,
     onBack: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RecordDetailViewModel = viewModel(),
 ) {
@@ -169,6 +170,15 @@ fun RecordDetailScreen(
                 .padding(top = 16.dp),
         ) {
             Text(if (isSharing) "카드 만드는 중..." else "공유하기")
+        }
+        Button(
+            onClick = onEdit,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        ) {
+            Text("수정")
         }
         Button(
             onClick = { showDeleteDialog = true },
