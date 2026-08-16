@@ -42,21 +42,33 @@ fun MapScreen(
     viewModel: MapViewModel = viewModel(),
 ) {
     val records by viewModel.records.collectAsState()
+    var mapError by remember { mutableStateOf<String?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         KakaoMapView(
             records = records,
             onRecordClick = onRecordClick,
+            onMapError = { mapError = it },
             modifier = Modifier.fillMaxSize(),
         )
 
-        if (records.isEmpty()) {
-            Text(
-                text = "지도에 표시할 기록이 아직 없습니다",
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 16.dp),
-            )
+        when {
+            mapError != null -> {
+                Text(
+                    text = "지도를 불러오지 못했습니다: $mapError",
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+                )
+            }
+            records.isEmpty() -> {
+                Text(
+                    text = "지도에 표시할 기록이 아직 없습니다",
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp),
+                )
+            }
         }
 
         Button(
@@ -74,6 +86,7 @@ fun MapScreen(
 private fun KakaoMapView(
     records: List<FishingRecord>,
     onRecordClick: (Long) -> Unit,
+    onMapError: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -87,7 +100,9 @@ private fun KakaoMapView(
             view.start(
                 object : MapLifeCycleCallback() {
                     override fun onMapDestroy() {}
-                    override fun onMapError(exception: Exception) {}
+                    override fun onMapError(exception: Exception) {
+                        onMapError(exception.message ?: exception.toString())
+                    }
                 },
                 object : KakaoMapReadyCallback() {
                     override fun onMapReady(kakaoMap: KakaoMap) {
