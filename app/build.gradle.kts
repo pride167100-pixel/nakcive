@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.appdistribution")
 }
 
 android {
@@ -31,6 +33,9 @@ android {
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName("debug")
+            firebaseAppDistribution {
+                releaseNotes = "낚카이브 테스트 빌드"
+            }
         }
         release {
             isMinifyEnabled = false
