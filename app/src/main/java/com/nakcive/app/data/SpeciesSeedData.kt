@@ -172,7 +172,7 @@ val SPECIES_SEED_DATA: List<SpeciesSeedEntry> = listOf(
     SpeciesSeedEntry(
         commonName = "문어",
         scientificName = "Octopus vulgaris",
-        description = "참문어 기준 정보",
+        description = "참문어 기준 정보 (지자체별로 금어기가 다르게 고시될 수 있음)",
         ecology = "야행성 연체동물로 갑각류·조개를 포식",
         habitat = "암초·펄바닥의 굴",
         closedSeasonStart = "5월 16일",
@@ -254,10 +254,12 @@ val SPECIES_SEED_DATA: List<SpeciesSeedEntry> = listOf(
     SpeciesSeedEntry(
         commonName = "고등어",
         scientificName = "Scomber japonicus",
-        description = "금어기는 매년 4~6월 중 해양수산부 장관이 정해 고시함",
+        description = "금어기는 매년 4~6월 중 해양수산부 장관이 고시로 정함 (2026년 기준)",
         ecology = "무리지어 다니는 대표적인 회유성 어종",
         habitat = "연안 회유",
         minLegalSize = 21.0,
+        closedSeasonStart = "5월 1일",
+        closedSeasonEnd = "5월 31일",
     ),
     SpeciesSeedEntry(
         commonName = "전어",
