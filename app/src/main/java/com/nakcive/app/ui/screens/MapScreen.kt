@@ -51,26 +51,13 @@ fun MapScreen(
 ) {
     val records by viewModel.records.collectAsState()
     var mapError by remember { mutableStateOf<String?>(null) }
-    var isMapReady by remember { mutableStateOf(false) }
-    var diagnosticStatus by remember { mutableStateOf("시작 전") }
 
     Box(modifier = modifier.fillMaxSize()) {
         KakaoMapView(
             records = records,
             onRecordClick = onRecordClick,
             onMapError = { mapError = it },
-            onMapReadyChanged = { isMapReady = it },
-            onDiagnosticUpdate = { diagnosticStatus = it },
             modifier = Modifier.fillMaxSize(),
-        )
-
-        Text(
-            text = "[진단] 지도 준비됨: $isMapReady / 불러온 기록 수: ${records.size} / " +
-                "첫 기록 좌표: ${records.firstOrNull()?.let { "${it.latitude}, ${it.longitude}" } ?: "없음"} / " +
-                "상태: $diagnosticStatus",
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(8.dp),
         )
 
         when {
@@ -108,8 +95,6 @@ private fun KakaoMapView(
     records: List<FishingRecord>,
     onRecordClick: (Long) -> Unit,
     onMapError: (String) -> Unit,
-    onMapReadyChanged: (Boolean) -> Unit,
-    onDiagnosticUpdate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -145,7 +130,6 @@ private fun KakaoMapView(
                         // 지도가 준비된 시점엔 기록 목록이 아직 DB에서 다 안 불러와졌을 수 있어서,
                         // 실제로 마커를 찍고 카메라를 옮기는 건 아래 LaunchedEffect(records)에서 처리한다.
                         kakaoMapState.value = kakaoMap
-                        onMapReadyChanged(true)
                     }
 
                     override fun getPosition(): LatLng = LatLng.from(DEFAULT_LAT, DEFAULT_LNG)
@@ -158,24 +142,19 @@ private fun KakaoMapView(
     )
 
     LaunchedEffect(records, kakaoMapState.value) {
-        val kakaoMap = kakaoMapState.value ?: run {
-            onDiagnosticUpdate("kakaoMap 아직 null")
-            return@LaunchedEffect
-        }
+        val kakaoMap = kakaoMapState.value ?: return@LaunchedEffect
         try {
             val failureReason = drawRecordLabels(kakaoMap, records, markerBitmap)
             if (failureReason != null) {
                 onMapError("마커 표시 실패 ($failureReason)")
                 return@LaunchedEffect
             }
-            onDiagnosticUpdate("라벨 ${records.size}개 그림")
             val target = records.firstOrNull()
             if (!hasCenteredCamera.value && target != null) {
                 hasCenteredCamera.value = true
                 kakaoMap.moveCamera(
                     CameraUpdateFactory.newCenterPosition(LatLng.from(target.latitude, target.longitude), 12),
                 )
-                onDiagnosticUpdate("라벨 ${records.size}개 그림 / 카메라 이동함")
             }
         } catch (e: Exception) {
             onMapError("마커 표시 중 오류: ${e.message ?: e.toString()}")
