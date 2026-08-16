@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "211148488896",
+    "project_id": "nakkaive",
+    "storage_bucket": "nakkaive.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211148488896:android:afae78720d4ac368816d25",
+        "android_client_info": {
+          "package_name": "com.nakcive.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyWRvM3U-8K3HuAJ1-1Ko-xBqvaLwEWw8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
