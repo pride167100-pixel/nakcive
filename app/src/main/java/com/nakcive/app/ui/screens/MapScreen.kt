@@ -47,6 +47,7 @@ fun MapScreen(
     val records by viewModel.records.collectAsState()
     var mapError by remember { mutableStateOf<String?>(null) }
     var isMapReady by remember { mutableStateOf(false) }
+    var diagnosticStatus by remember { mutableStateOf("시작 전") }
 
     Box(modifier = modifier.fillMaxSize()) {
         KakaoMapView(
@@ -54,11 +55,14 @@ fun MapScreen(
             onRecordClick = onRecordClick,
             onMapError = { mapError = it },
             onMapReadyChanged = { isMapReady = it },
+            onDiagnosticUpdate = { diagnosticStatus = it },
             modifier = Modifier.fillMaxSize(),
         )
 
         Text(
-            text = "[진단] 지도 준비됨: $isMapReady / 불러온 기록 수: ${records.size}",
+            text = "[진단] 지도 준비됨: $isMapReady / 불러온 기록 수: ${records.size} / " +
+                "첫 기록 좌표: ${records.firstOrNull()?.let { "${it.latitude}, ${it.longitude}" } ?: "없음"} / " +
+                "상태: $diagnosticStatus",
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(8.dp),
@@ -100,6 +104,7 @@ private fun KakaoMapView(
     onRecordClick: (Long) -> Unit,
     onMapError: (String) -> Unit,
     onMapReadyChanged: (Boolean) -> Unit,
+    onDiagnosticUpdate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -144,19 +149,24 @@ private fun KakaoMapView(
     )
 
     LaunchedEffect(records, kakaoMapState.value) {
-        val kakaoMap = kakaoMapState.value ?: return@LaunchedEffect
+        val kakaoMap = kakaoMapState.value ?: run {
+            onDiagnosticUpdate("kakaoMap 아직 null")
+            return@LaunchedEffect
+        }
         try {
             val failureReason = drawRecordLabels(kakaoMap, records)
             if (failureReason != null) {
                 onMapError("마커 표시 실패 ($failureReason)")
                 return@LaunchedEffect
             }
+            onDiagnosticUpdate("라벨 ${records.size}개 그림")
             val target = records.firstOrNull()
             if (!hasCenteredCamera.value && target != null) {
                 hasCenteredCamera.value = true
                 kakaoMap.moveCamera(
                     CameraUpdateFactory.newCenterPosition(LatLng.from(target.latitude, target.longitude), 12),
                 )
+                onDiagnosticUpdate("라벨 ${records.size}개 그림 / 카메라 이동함")
             }
         } catch (e: Exception) {
             onMapError("마커 표시 중 오류: ${e.message ?: e.toString()}")
