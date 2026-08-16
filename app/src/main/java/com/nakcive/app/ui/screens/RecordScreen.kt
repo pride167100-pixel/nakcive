@@ -2,6 +2,7 @@ package com.nakcive.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,9 +13,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,19 +42,56 @@ fun RecordScreen(
     modifier: Modifier = Modifier,
     viewModel: RecordViewModel = viewModel(),
 ) {
-    val records by viewModel.records.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(text = "기록", fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
-        if (records.isEmpty()) {
+        OutlinedTextField(
+            value = uiState.searchQuery,
+            onValueChange = viewModel::setSearchQuery,
+            label = { Text("어종명 또는 주소 검색") },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RecordSortChip("최신순", uiState.sortMode == RecordSortMode.NEWEST) {
+                viewModel.setSortMode(RecordSortMode.NEWEST)
+            }
+            RecordSortChip("오래된순", uiState.sortMode == RecordSortMode.OLDEST) {
+                viewModel.setSortMode(RecordSortMode.OLDEST)
+            }
+            RecordSortChip("크기순", uiState.sortMode == RecordSortMode.SIZE) {
+                viewModel.setSortMode(RecordSortMode.SIZE)
+            }
+            RecordSortChip("무게순", uiState.sortMode == RecordSortMode.WEIGHT) {
+                viewModel.setSortMode(RecordSortMode.WEIGHT)
+            }
+        }
+
+        if (uiState.records.isEmpty()) {
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("아직 등록된 기록이 없습니다")
+                Text(
+                    if (uiState.searchQuery.isBlank()) {
+                        "아직 등록된 기록이 없습니다"
+                    } else {
+                        "검색 결과가 없습니다"
+                    },
+                )
             }
         } else {
             LazyColumn(
@@ -60,7 +101,7 @@ fun RecordScreen(
                     .padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(records) { record ->
+                items(uiState.records) { record ->
                     RecordRow(record, onClick = { onRecordClick(record.id) })
                 }
             }
@@ -73,6 +114,15 @@ fun RecordScreen(
 }
 
 @Composable
+private fun RecordSortChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+    )
+}
+
+@Composable
 private fun RecordRow(record: FishingRecord, onClick: () -> Unit) {
     Card(
         modifier = Modifier
@@ -82,11 +132,7 @@ private fun RecordRow(record: FishingRecord, onClick: () -> Unit) {
         Row(modifier = Modifier.padding(12.dp)) {
             RecordThumbnail(photoPath = record.photoPath)
             Column(modifier = Modifier.padding(start = 12.dp)) {
-                val locationLabel = record.address
-                    ?.trim()
-                    ?.split(" ")
-                    ?.lastOrNull { it.isNotBlank() }
-                    ?: record.regionTag
+                val locationLabel = extractLocalityLabel(record.address, record.regionTag)
                 Text(
                     text = "${record.customSpeciesName ?: "어종 미입력"}  ($locationLabel)",
                     fontWeight = FontWeight.Bold,
@@ -103,6 +149,16 @@ private fun RecordRow(record: FishingRecord, onClick: () -> Unit) {
             }
         }
     }
+}
+
+/** 상세 주소(지번 포함)에서 '읍/면/동/리/가'로 끝나는 지명 토큰만 골라 제목 옆에 짧게 표시한다. */
+private fun extractLocalityLabel(address: String?, fallback: String): String {
+    if (address.isNullOrBlank()) return fallback
+    val localitySuffixes = listOf("읍", "면", "동", "리", "가")
+    val tokens = address.trim().split(" ").filter { it.isNotBlank() }
+    return tokens.lastOrNull { token -> localitySuffixes.any { token.endsWith(it) } }
+        ?: tokens.lastOrNull()
+        ?: fallback
 }
 
 @Composable
