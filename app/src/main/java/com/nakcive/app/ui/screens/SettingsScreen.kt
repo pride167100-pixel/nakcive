@@ -1,16 +1,20 @@
 package com.nakcive.app.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nakcive.app.data.ThemeMode
 import com.nakcive.app.ui.theme.NakciveTopBar
 
 @Composable
@@ -56,6 +61,31 @@ fun SettingsScreen(
 
         SettingsSectionCard(title = "앱 정보") {
             Text(text = "낚카이브 v${uiState.appVersion}", fontSize = 14.sp)
+        }
+
+        SettingsSectionCard(title = "화면 테마") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ThemeModeChip(
+                    label = "시스템 설정",
+                    selected = uiState.themeMode == ThemeMode.SYSTEM,
+                    onClick = { viewModel.setThemeMode(ThemeMode.SYSTEM) },
+                )
+                ThemeModeChip(
+                    label = "라이트",
+                    selected = uiState.themeMode == ThemeMode.LIGHT,
+                    onClick = { viewModel.setThemeMode(ThemeMode.LIGHT) },
+                )
+                ThemeModeChip(
+                    label = "다크",
+                    selected = uiState.themeMode == ThemeMode.DARK,
+                    onClick = { viewModel.setThemeMode(ThemeMode.DARK) },
+                )
+            }
         }
 
         SettingsSectionCard(title = "데이터 관리") {
@@ -100,6 +130,15 @@ fun SettingsScreen(
             },
         )
     }
+}
+
+@Composable
+private fun ThemeModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+    )
 }
 
 @Composable
