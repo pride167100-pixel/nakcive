@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +58,16 @@ fun SpeciesInfoScreen(
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+        )
+
+        OutlinedTextField(
+            value = uiState.searchQuery,
+            onValueChange = viewModel::setSearchQuery,
+            label = { Text("어종명 검색") },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
         )
 
         LazyColumn(

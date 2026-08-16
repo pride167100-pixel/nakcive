@@ -18,6 +18,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +49,16 @@ fun SpeciesScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         NakciveTopBar(title = "도감", onBack = onBack)
+
+        OutlinedTextField(
+            value = uiState.searchQuery,
+            onValueChange = viewModel::setSearchQuery,
+            label = { Text("어종명 검색") },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
 
         Row(
             modifier = Modifier

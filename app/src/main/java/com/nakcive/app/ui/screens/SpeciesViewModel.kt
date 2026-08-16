@@ -29,6 +29,7 @@ data class SpeciesUiState(
     val entries: List<SpeciesEntry> = emptyList(),
     val isLoading: Boolean = true,
     val sortMode: SpeciesSortMode = SpeciesSortMode.DEFAULT,
+    val searchQuery: String = "",
 )
 
 private fun sortSpeciesEntries(entries: List<SpeciesEntry>, mode: SpeciesSortMode): List<SpeciesEntry> {
@@ -84,12 +85,25 @@ class SpeciesViewModel(application: Application) : AndroidViewModel(application)
             }
 
             _uiState.update {
-                it.copy(entries = sortSpeciesEntries(rawEntries, it.sortMode), isLoading = false)
+                it.copy(entries = applyFilterAndSort(it.searchQuery, it.sortMode), isLoading = false)
             }
         }
     }
 
     fun setSortMode(mode: SpeciesSortMode) {
-        _uiState.update { it.copy(entries = sortSpeciesEntries(rawEntries, mode), sortMode = mode) }
+        _uiState.update { it.copy(entries = applyFilterAndSort(it.searchQuery, mode), sortMode = mode) }
+    }
+
+    fun setSearchQuery(query: String) {
+        _uiState.update { it.copy(entries = applyFilterAndSort(query, it.sortMode), searchQuery = query) }
+    }
+
+    private fun applyFilterAndSort(query: String, mode: SpeciesSortMode): List<SpeciesEntry> {
+        val filtered = if (query.isBlank()) {
+            rawEntries
+        } else {
+            rawEntries.filter { it.species.commonName.contains(query, ignoreCase = true) }
+        }
+        return sortSpeciesEntries(filtered, mode)
     }
 }

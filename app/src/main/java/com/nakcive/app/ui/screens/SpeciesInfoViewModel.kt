@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 data class SpeciesInfoUiState(
     val species: List<Species> = emptyList(),
     val isLoading: Boolean = true,
+    val searchQuery: String = "",
 )
 
 class SpeciesInfoViewModel(application: Application) : AndroidViewModel(application) {
@@ -24,13 +25,32 @@ class SpeciesInfoViewModel(application: Application) : AndroidViewModel(applicat
     private val _uiState = MutableStateFlow(SpeciesInfoUiState())
     val uiState: StateFlow<SpeciesInfoUiState> = _uiState.asStateFlow()
 
+    private var rawSpecies: List<Species> = emptyList()
+
     fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val speciesDao = database.speciesDao()
             SpeciesSeeder.ensureSeeded(speciesDao)
-            val species = speciesDao.getAll().first()
-            _uiState.update { it.copy(species = species, isLoading = false) }
+            rawSpecies = speciesDao.getAll().first()
+            _uiState.update {
+                it.copy(species = applyFilter(it.searchQuery), isLoading = false)
+            }
+        }
+    }
+
+    fun setSearchQuery(query: String) {
+        _uiState.update { it.copy(species = applyFilter(query), searchQuery = query) }
+    }
+
+    private fun applyFilter(query: String): List<Species> {
+        return if (query.isBlank()) {
+            rawSpecies
+        } else {
+            rawSpecies.filter {
+                it.commonName.contains(query, ignoreCase = true) ||
+                    (it.scientificName?.contains(query, ignoreCase = true) == true)
+            }
         }
     }
 }
