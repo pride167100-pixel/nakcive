@@ -1,8 +1,12 @@
 package com.nakcive.app.ui.screens
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -37,10 +41,12 @@ import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
 import com.nakcive.app.R
 import com.nakcive.app.data.entity.FishingRecord
+import com.nakcive.app.ui.camera.getCurrentLocation
 
 private const val DEFAULT_LAT = 36.5
 private const val DEFAULT_LNG = 127.8
 private const val LABEL_ID_PREFIX = "record_"
+private const val CURRENT_LOCATION_LABEL_ID = "current_location"
 
 @Composable
 fun MapScreen(
@@ -102,9 +108,24 @@ private fun KakaoMapView(
     val mapView = remember { mutableStateOf<MapView?>(null) }
     val kakaoMapState = remember { mutableStateOf<KakaoMap?>(null) }
     val hasCenteredCamera = remember { mutableStateOf(false) }
+    val currentLocation = remember { mutableStateOf<LatLng?>(null) }
     // 벡터(XML) 드로어블은 카카오맵 라벨 렌더러가 못 읽는 경우가 있어서,
     // 미리 실제 비트맵 이미지로 직접 그려서 넘긴다.
     val markerBitmap = remember { createMarkerBitmap(context) }
+    val currentLocationBitmap = remember { createCurrentLocationBitmap() }
+
+    LaunchedEffect(Unit) {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            val location = getCurrentLocation(context)
+            if (location != null) {
+                currentLocation.value = LatLng.from(location.latitude, location.longitude)
+            }
+        }
+    }
 
     AndroidView(
         modifier = modifier,
@@ -141,10 +162,16 @@ private fun KakaoMapView(
         },
     )
 
-    LaunchedEffect(records, kakaoMapState.value) {
+    LaunchedEffect(records, kakaoMapState.value, currentLocation.value) {
         val kakaoMap = kakaoMapState.value ?: return@LaunchedEffect
         try {
-            val failureReason = drawRecordLabels(kakaoMap, records, markerBitmap)
+            val failureReason = drawRecordLabels(
+                kakaoMap,
+                records,
+                markerBitmap,
+                currentLocation.value,
+                currentLocationBitmap,
+            )
             if (failureReason != null) {
                 onMapError("마커 표시 실패 ($failureReason)")
                 return@LaunchedEffect
@@ -175,10 +202,26 @@ private fun KakaoMapView(
 }
 
 /** 성공하면 null, 실패하면 원인 문구를 반환한다 (화면에 그대로 보여주기 위함). */
-private fun drawRecordLabels(kakaoMap: KakaoMap, records: List<FishingRecord>, markerBitmap: Bitmap): String? {
+private fun drawRecordLabels(
+    kakaoMap: KakaoMap,
+    records: List<FishingRecord>,
+    markerBitmap: Bitmap,
+    currentLocation: LatLng?,
+    currentLocationBitmap: Bitmap,
+): String? {
     val labelManager = kakaoMap.labelManager ?: return "labelManager가 null"
     val layer = labelManager.layer ?: return "labelManager.layer가 null"
     layer.removeAll()
+
+    if (currentLocation != null) {
+        val currentLocationStyles = labelManager.addLabelStyles(
+            LabelStyles.from(LabelStyle.from(currentLocationBitmap)),
+        ) ?: return "addLabelStyles(내 위치)가 null"
+        layer.addLabel(
+            LabelOptions.from(CURRENT_LOCATION_LABEL_ID, currentLocation).setStyles(currentLocationStyles),
+        )
+    }
+
     if (records.isEmpty()) return null
     val styles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(markerBitmap)))
         ?: return "addLabelStyles가 null"
@@ -200,5 +243,18 @@ private fun createMarkerBitmap(context: Context): Bitmap {
     val canvas = Canvas(bitmap)
     drawable.setBounds(0, 0, canvas.width, canvas.height)
     drawable.draw(canvas)
+    return bitmap
+}
+
+/** 파란 점 + 흰 테두리로 된 "내 위치" 마커를 코드로 직접 그린다 (리소스 파일 불필요). */
+private fun createCurrentLocationBitmap(): Bitmap {
+    val sizePx = 48
+    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val center = sizePx / 2f
+    val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#4285F4") }
+    canvas.drawCircle(center, center, center, borderPaint)
+    canvas.drawCircle(center, center, center - 5f, dotPaint)
     return bitmap
 }
