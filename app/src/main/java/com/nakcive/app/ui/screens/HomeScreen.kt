@@ -24,6 +24,7 @@ private val homeMenuItems = listOf(
     HomeMenuItem("기록", "record"),
     HomeMenuItem("＋ 등록", "add"),
     HomeMenuItem("도감", "species"),
+    HomeMenuItem("어종 특징", "species_info"),
     HomeMenuItem("설정", "settings"),
 )
 

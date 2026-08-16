@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.nakcive.app.data.entity.Species
 import kotlinx.coroutines.flow.Flow
 
@@ -14,6 +15,9 @@ interface SpeciesDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(species: List<Species>)
+
+    @Update
+    suspend fun update(species: Species)
 
     @Query("SELECT * FROM species ORDER BY commonName")
     fun getAll(): Flow<List<Species>>

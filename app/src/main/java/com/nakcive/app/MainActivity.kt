@@ -23,6 +23,7 @@ import com.nakcive.app.ui.screens.MapScreen
 import com.nakcive.app.ui.screens.RecordDetailScreen
 import com.nakcive.app.ui.screens.RecordScreen
 import com.nakcive.app.ui.screens.SettingsScreen
+import com.nakcive.app.ui.screens.SpeciesInfoScreen
 import com.nakcive.app.ui.screens.SpeciesScreen
 
 private const val SCREEN_TRANSITION_MS = 220
@@ -98,6 +99,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("species") {
                             SpeciesScreen(onBack = { navController.popBackStack() })
+                        }
+                        composable("species_info") {
+                            SpeciesInfoScreen(onBack = { navController.popBackStack() })
                         }
                         composable("settings") {
                             SettingsScreen(onBack = { navController.popBackStack() })
