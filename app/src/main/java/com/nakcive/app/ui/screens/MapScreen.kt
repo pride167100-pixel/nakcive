@@ -46,13 +46,22 @@ fun MapScreen(
 ) {
     val records by viewModel.records.collectAsState()
     var mapError by remember { mutableStateOf<String?>(null) }
+    var isMapReady by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         KakaoMapView(
             records = records,
             onRecordClick = onRecordClick,
             onMapError = { mapError = it },
+            onMapReadyChanged = { isMapReady = it },
             modifier = Modifier.fillMaxSize(),
+        )
+
+        Text(
+            text = "[진단] 지도 준비됨: $isMapReady / 불러온 기록 수: ${records.size}",
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(8.dp),
         )
 
         when {
@@ -90,6 +99,7 @@ private fun KakaoMapView(
     records: List<FishingRecord>,
     onRecordClick: (Long) -> Unit,
     onMapError: (String) -> Unit,
+    onMapReadyChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -121,6 +131,7 @@ private fun KakaoMapView(
                         // 지도가 준비된 시점엔 기록 목록이 아직 DB에서 다 안 불러와졌을 수 있어서,
                         // 실제로 마커를 찍고 카메라를 옮기는 건 아래 LaunchedEffect(records)에서 처리한다.
                         kakaoMapState.value = kakaoMap
+                        onMapReadyChanged(true)
                     }
 
                     override fun getPosition(): LatLng = LatLng.from(DEFAULT_LAT, DEFAULT_LNG)
