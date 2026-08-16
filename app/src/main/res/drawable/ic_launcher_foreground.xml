@@ -4,8 +4,14 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 임시 아이콘: 흰색 원. 나중에 실제 낚카이브 로고로 교체하세요. -->
+    <!-- 낚카이브 로고: 흰색 물고기 실루엣 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,34m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+        android:pathData="M30,54 C30,41 41,32 56,32 C70,32 80,41 80,54 C80,67 70,76 56,76 C41,76 30,67 30,54 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M78,54 L94,40 L94,68 Z" />
+    <path
+        android:fillColor="#0B6E8C"
+        android:pathData="M43,48 m-3,0 a3,3 0,1 1,6 0 a3,3 0,1 1,-6 0" />
 </vector>

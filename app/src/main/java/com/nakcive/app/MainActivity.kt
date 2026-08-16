@@ -9,7 +9,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -25,6 +24,7 @@ import com.nakcive.app.ui.screens.RecordScreen
 import com.nakcive.app.ui.screens.SettingsScreen
 import com.nakcive.app.ui.screens.SpeciesInfoScreen
 import com.nakcive.app.ui.screens.SpeciesScreen
+import com.nakcive.app.ui.theme.NakciveTheme
 
 private const val SCREEN_TRANSITION_MS = 220
 
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
+            NakciveTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     val navController = rememberNavController()
                     NavHost(
