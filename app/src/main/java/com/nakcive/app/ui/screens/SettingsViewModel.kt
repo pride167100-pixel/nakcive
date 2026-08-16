@@ -18,7 +18,7 @@ data class SettingsUiState(
     val appVersion: String = BuildConfig.VERSION_NAME,
     val isResetting: Boolean = false,
     val resetCompleted: Boolean = false,
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val themeMode: ThemeMode = ThemeMode.LIGHT,
 )
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
