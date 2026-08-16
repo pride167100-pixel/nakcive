@@ -71,11 +71,6 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 ThemeModeChip(
-                    label = "시스템 설정",
-                    selected = uiState.themeMode == ThemeMode.SYSTEM,
-                    onClick = { viewModel.setThemeMode(ThemeMode.SYSTEM) },
-                )
-                ThemeModeChip(
                     label = "라이트",
                     selected = uiState.themeMode == ThemeMode.LIGHT,
                     onClick = { viewModel.setThemeMode(ThemeMode.LIGHT) },

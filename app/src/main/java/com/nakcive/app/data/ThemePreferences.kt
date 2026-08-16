@@ -6,13 +6,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class ThemeMode { SYSTEM, LIGHT, DARK }
+enum class ThemeMode { LIGHT, DARK }
 
 private const val PREFS_NAME = "nakcive_prefs"
 private const val KEY_THEME_MODE = "theme_mode"
 
 object ThemePreferences {
-    private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+    private val _themeMode = MutableStateFlow(ThemeMode.LIGHT)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     private var initialized = false
@@ -20,9 +20,9 @@ object ThemePreferences {
     fun init(context: Context) {
         if (initialized) return
         initialized = true
-        val saved = prefs(context).getString(KEY_THEME_MODE, ThemeMode.SYSTEM.name)
-        _themeMode.value = runCatching { ThemeMode.valueOf(saved ?: ThemeMode.SYSTEM.name) }
-            .getOrDefault(ThemeMode.SYSTEM)
+        val saved = prefs(context).getString(KEY_THEME_MODE, ThemeMode.LIGHT.name)
+        _themeMode.value = runCatching { ThemeMode.valueOf(saved ?: ThemeMode.LIGHT.name) }
+            .getOrDefault(ThemeMode.LIGHT)
     }
 
     fun setThemeMode(context: Context, mode: ThemeMode) {

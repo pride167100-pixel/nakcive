@@ -1,6 +1,5 @@
 package com.nakcive.app.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -61,11 +60,7 @@ private val NakciveDarkColorScheme = darkColorScheme(
 @Composable
 fun NakciveTheme(content: @Composable () -> Unit) {
     val themeMode by ThemePreferences.themeMode.collectAsState()
-    val useDarkTheme = when (themeMode) {
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-    }
+    val useDarkTheme = themeMode == ThemeMode.DARK
     MaterialTheme(
         colorScheme = if (useDarkTheme) NakciveDarkColorScheme else NakciveLightColorScheme,
         content = content,
