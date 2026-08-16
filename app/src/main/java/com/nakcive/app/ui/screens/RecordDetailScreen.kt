@@ -2,6 +2,7 @@ package com.nakcive.app.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.nakcive.app.share.ShareCardGenerator
+import kotlinx.coroutines.launch
 
 @Composable
 fun RecordDetailScreen(
@@ -44,8 +48,10 @@ fun RecordDetailScreen(
     viewModel: RecordDetailViewModel = viewModel(),
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var isSharing by remember { mutableStateOf(false) }
 
     LaunchedEffect(recordId) {
         viewModel.load(recordId)
@@ -132,11 +138,37 @@ fun RecordDetailScreen(
         }
 
         Button(
+            enabled = !isSharing,
+            onClick = {
+                isSharing = true
+                coroutineScope.launch {
+                    val speciesLabel = record.customSpeciesName ?: "어종 미입력"
+                    val uri = ShareCardGenerator.generate(context, record, speciesLabel)
+                    isSharing = false
+                    if (uri != null) {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "image/jpeg"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "공유하기"))
+                    } else {
+                        Toast.makeText(context, "카드 생성에 실패했습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+        ) {
+            Text(if (isSharing) "카드 만드는 중..." else "공유하기")
+        }
+        Button(
             onClick = { showDeleteDialog = true },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E)),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = 8.dp),
         ) {
             Text("삭제")
         }
