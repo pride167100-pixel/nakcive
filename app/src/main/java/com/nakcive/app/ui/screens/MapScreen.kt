@@ -1,5 +1,8 @@
 package com.nakcive.app.ui.screens
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,8 +18,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -107,10 +112,14 @@ private fun KakaoMapView(
     onDiagnosticUpdate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val mapView = remember { mutableStateOf<MapView?>(null) }
     val kakaoMapState = remember { mutableStateOf<KakaoMap?>(null) }
     val hasCenteredCamera = remember { mutableStateOf(false) }
+    // 벡터(XML) 드로어블은 카카오맵 라벨 렌더러가 못 읽는 경우가 있어서,
+    // 미리 실제 비트맵 이미지로 직접 그려서 넘긴다.
+    val markerBitmap = remember { createMarkerBitmap(context) }
 
     AndroidView(
         modifier = modifier,
@@ -154,7 +163,7 @@ private fun KakaoMapView(
             return@LaunchedEffect
         }
         try {
-            val failureReason = drawRecordLabels(kakaoMap, records)
+            val failureReason = drawRecordLabels(kakaoMap, records, markerBitmap)
             if (failureReason != null) {
                 onMapError("마커 표시 실패 ($failureReason)")
                 return@LaunchedEffect
@@ -187,12 +196,12 @@ private fun KakaoMapView(
 }
 
 /** 성공하면 null, 실패하면 원인 문구를 반환한다 (화면에 그대로 보여주기 위함). */
-private fun drawRecordLabels(kakaoMap: KakaoMap, records: List<FishingRecord>): String? {
+private fun drawRecordLabels(kakaoMap: KakaoMap, records: List<FishingRecord>, markerBitmap: Bitmap): String? {
     val labelManager = kakaoMap.labelManager ?: return "labelManager가 null"
     val layer = labelManager.layer ?: return "labelManager.layer가 null"
     layer.removeAll()
     if (records.isEmpty()) return null
-    val styles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(R.drawable.ic_map_marker)))
+    val styles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(markerBitmap)))
         ?: return "addLabelStyles가 null"
     records.forEach { record ->
         val options = LabelOptions.from(
@@ -202,4 +211,15 @@ private fun drawRecordLabels(kakaoMap: KakaoMap, records: List<FishingRecord>): 
         layer.addLabel(options)
     }
     return null
+}
+
+private fun createMarkerBitmap(context: Context): Bitmap {
+    val drawable = ContextCompat.getDrawable(context, R.drawable.ic_map_marker)!!
+    val width = drawable.intrinsicWidth.coerceAtLeast(1)
+    val height = drawable.intrinsicHeight.coerceAtLeast(1)
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    drawable.setBounds(0, 0, canvas.width, canvas.height)
+    drawable.draw(canvas)
+    return bitmap
 }
