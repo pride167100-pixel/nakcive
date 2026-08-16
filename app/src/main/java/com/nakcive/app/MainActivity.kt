@@ -68,7 +68,12 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(onNavigate = { route -> navController.navigate(route) })
                         }
                         composable("map") {
-                            MapScreen(onBack = { navController.popBackStack() })
+                            MapScreen(
+                                onBack = { navController.popBackStack() },
+                                onRecordClick = { recordId ->
+                                    navController.navigate("record_detail/$recordId")
+                                },
+                            )
                         }
                         composable("record") {
                             RecordScreen(
