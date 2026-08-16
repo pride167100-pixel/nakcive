@@ -13,13 +13,18 @@ suspend fun reverseGeocode(context: Context, latitude: Double, longitude: Double
             val geocoder = Geocoder(context, Locale.KOREA)
             val addresses = geocoder.getFromLocation(latitude, longitude, 1)
             addresses?.firstOrNull()?.let { address ->
-                listOfNotNull(
-                    address.adminArea,
-                    address.subAdminArea,
-                    address.locality,
-                    address.subLocality,
-                    address.thoroughfare,
-                ).distinct().joinToString(" ").ifBlank { null }
+                // getAddressLine(0)은 지오코더가 가진 가장 상세한 형태(지번/도로명 포함)의
+                // 한 줄 주소를 준다. 못 받으면 행정구역 단위를 이어붙인 값으로 대체.
+                address.getAddressLine(0)?.takeIf { it.isNotBlank() }
+                    ?: listOfNotNull(
+                        address.adminArea,
+                        address.subAdminArea,
+                        address.locality,
+                        address.subLocality,
+                        address.thoroughfare,
+                        address.subThoroughfare,
+                        address.featureName,
+                    ).distinct().joinToString(" ").ifBlank { null }
             }
         } catch (_: Exception) {
             // 인터넷이 안 되는 곳(먼바다 등)에서는 주소 변환이 실패할 수 있음.
