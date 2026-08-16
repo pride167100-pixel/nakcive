@@ -7,6 +7,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +26,7 @@ import com.kakao.vectormap.KakaoMapReadyCallback
 import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.MapLifeCycleCallback
 import com.kakao.vectormap.MapView
+import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
@@ -92,6 +94,8 @@ private fun KakaoMapView(
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val mapView = remember { mutableStateOf<MapView?>(null) }
+    val kakaoMapState = remember { mutableStateOf<KakaoMap?>(null) }
+    val hasCenteredCamera = remember { mutableStateOf(false) }
 
     AndroidView(
         modifier = modifier,
@@ -107,7 +111,6 @@ private fun KakaoMapView(
                 },
                 object : KakaoMapReadyCallback() {
                     override fun onMapReady(kakaoMap: KakaoMap) {
-                        drawRecordLabels(kakaoMap, records)
                         kakaoMap.setOnLabelClickListener { _, _, label ->
                             label.labelId
                                 .removePrefix(LABEL_ID_PREFIX)
@@ -115,23 +118,31 @@ private fun KakaoMapView(
                                 ?.let(onRecordClick)
                             true
                         }
+                        // 지도가 준비된 시점엔 기록 목록이 아직 DB에서 다 안 불러와졌을 수 있어서,
+                        // 실제로 마커를 찍고 카메라를 옮기는 건 아래 LaunchedEffect(records)에서 처리한다.
+                        kakaoMapState.value = kakaoMap
                     }
 
-                    override fun getPosition(): LatLng {
-                        val target = records.firstOrNull()
-                        return if (target != null) {
-                            LatLng.from(target.latitude, target.longitude)
-                        } else {
-                            LatLng.from(DEFAULT_LAT, DEFAULT_LNG)
-                        }
-                    }
+                    override fun getPosition(): LatLng = LatLng.from(DEFAULT_LAT, DEFAULT_LNG)
 
-                    override fun getZoomLevel(): Int = if (records.isEmpty()) 7 else 12
+                    override fun getZoomLevel(): Int = 7
                 },
             )
             view
         },
     )
+
+    LaunchedEffect(records, kakaoMapState.value) {
+        val kakaoMap = kakaoMapState.value ?: return@LaunchedEffect
+        drawRecordLabels(kakaoMap, records)
+        val target = records.firstOrNull()
+        if (!hasCenteredCamera.value && target != null) {
+            hasCenteredCamera.value = true
+            kakaoMap.moveCamera(
+                CameraUpdateFactory.newCenterPosition(LatLng.from(target.latitude, target.longitude), 12),
+            )
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -148,8 +159,10 @@ private fun KakaoMapView(
 
 private fun drawRecordLabels(kakaoMap: KakaoMap, records: List<FishingRecord>) {
     val labelManager = kakaoMap.labelManager ?: return
-    val styles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(R.drawable.ic_map_marker)))
     val layer = labelManager.layer ?: return
+    layer.removeAll()
+    if (records.isEmpty()) return
+    val styles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(R.drawable.ic_map_marker)))
     records.forEach { record ->
         val options = LabelOptions.from(
             "$LABEL_ID_PREFIX${record.id}",
