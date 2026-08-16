@@ -134,13 +134,21 @@ private fun KakaoMapView(
 
     LaunchedEffect(records, kakaoMapState.value) {
         val kakaoMap = kakaoMapState.value ?: return@LaunchedEffect
-        drawRecordLabels(kakaoMap, records)
-        val target = records.firstOrNull()
-        if (!hasCenteredCamera.value && target != null) {
-            hasCenteredCamera.value = true
-            kakaoMap.moveCamera(
-                CameraUpdateFactory.newCenterPosition(LatLng.from(target.latitude, target.longitude), 12),
-            )
+        try {
+            val failureReason = drawRecordLabels(kakaoMap, records)
+            if (failureReason != null) {
+                onMapError("마커 표시 실패 ($failureReason)")
+                return@LaunchedEffect
+            }
+            val target = records.firstOrNull()
+            if (!hasCenteredCamera.value && target != null) {
+                hasCenteredCamera.value = true
+                kakaoMap.moveCamera(
+                    CameraUpdateFactory.newCenterPosition(LatLng.from(target.latitude, target.longitude), 12),
+                )
+            }
+        } catch (e: Exception) {
+            onMapError("마커 표시 중 오류: ${e.message ?: e.toString()}")
         }
     }
 
@@ -157,12 +165,14 @@ private fun KakaoMapView(
     }
 }
 
-private fun drawRecordLabels(kakaoMap: KakaoMap, records: List<FishingRecord>) {
-    val labelManager = kakaoMap.labelManager ?: return
-    val layer = labelManager.layer ?: return
+/** 성공하면 null, 실패하면 원인 문구를 반환한다 (화면에 그대로 보여주기 위함). */
+private fun drawRecordLabels(kakaoMap: KakaoMap, records: List<FishingRecord>): String? {
+    val labelManager = kakaoMap.labelManager ?: return "labelManager가 null"
+    val layer = labelManager.layer ?: return "labelManager.layer가 null"
     layer.removeAll()
-    if (records.isEmpty()) return
+    if (records.isEmpty()) return null
     val styles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(R.drawable.ic_map_marker)))
+        ?: return "addLabelStyles가 null"
     records.forEach { record ->
         val options = LabelOptions.from(
             "$LABEL_ID_PREFIX${record.id}",
@@ -170,4 +180,5 @@ private fun drawRecordLabels(kakaoMap: KakaoMap, records: List<FishingRecord>) {
         ).setStyles(styles)
         layer.addLabel(options)
     }
+    return null
 }
