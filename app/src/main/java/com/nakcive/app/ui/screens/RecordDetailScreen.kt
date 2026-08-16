@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +17,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.nakcive.app.share.ShareCardGenerator
+import com.nakcive.app.ui.theme.NakciveTopBar
 import kotlinx.coroutines.launch
 
 @Composable
@@ -68,8 +73,8 @@ fun RecordDetailScreen(
                 .fillMaxSize()
                 .padding(16.dp),
         ) {
+            NakciveTopBar(title = "기록 상세", onBack = onBack)
             Text(if (uiState.isLoading) "불러오는 중..." else "기록을 찾을 수 없습니다")
-            TextButton(onClick = onBack) { Text("뒤로가기") }
         }
         return
     }
@@ -81,11 +86,7 @@ fun RecordDetailScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            text = record.customSpeciesName ?: "어종 미입력",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-        )
+        NakciveTopBar(title = record.customSpeciesName ?: "어종 미입력", onBack = onBack)
 
         if (record.photoPath.isNotBlank()) {
             AsyncImage(
@@ -94,47 +95,52 @@ fun RecordDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)
-                    .clip(RoundedCornerShape(12.dp)),
+                    .clip(RoundedCornerShape(16.dp)),
                 contentScale = ContentScale.Crop,
             )
         }
 
-        Text(text = "대표정보", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
-        Text(
-            text = "위치: ${record.address ?: "주소 확인 불가 (탭하면 지도로 보기)"}",
-            textDecoration = TextDecoration.Underline,
-            modifier = Modifier.clickable {
-                val label = record.customSpeciesName ?: "낚시 기록"
-                val uri = Uri.parse(
-                    "geo:${record.latitude},${record.longitude}" +
-                        "?q=${record.latitude},${record.longitude}($label)",
-                )
-                context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-            },
-        )
-        Text(text = "낚시법: ${record.fishingMethod.ifBlank { "-" }}")
-        Text(text = "물때: ${record.tidePhase ?: "미확인"}")
-        Text(
-            text = "크기: ${record.sizeCm?.let { "${it}cm" } ?: "-"}   " +
-                "무게: ${record.weightKg?.let { "${it}kg" } ?: "-"}",
-        )
-        if (!record.memo.isNullOrBlank()) {
-            Text(text = "메모: ${record.memo}")
+        InfoSectionCard(title = "대표정보") {
+            InfoLine(
+                label = "위치",
+                value = record.address ?: "주소 확인 불가 (탭하면 지도로 보기)",
+                valueUnderline = true,
+                onValueClick = {
+                    val label = record.customSpeciesName ?: "낚시 기록"
+                    val uri = Uri.parse(
+                        "geo:${record.latitude},${record.longitude}" +
+                            "?q=${record.latitude},${record.longitude}($label)",
+                    )
+                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                },
+            )
+            InfoLine(label = "낚시법", value = record.fishingMethod.ifBlank { "-" })
+            InfoLine(label = "물때", value = record.tidePhase ?: "미확인")
+            InfoLine(
+                label = "크기/무게",
+                value = "${record.sizeCm?.let { "${it}cm" } ?: "-"}   " +
+                    "${record.weightKg?.let { "${it}kg" } ?: "-"}",
+            )
+            if (!record.memo.isNullOrBlank()) {
+                InfoLine(label = "메모", value = record.memo)
+            }
         }
 
-        Text(text = "세부정보", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
         val detail = uiState.detail
-        Text(text = "수온: ${detail?.waterTemp?.let { "${it}°C" } ?: "미확인"}")
-        Text(text = "기온: ${detail?.airTemp?.let { "${it}°C" } ?: "미확인"}")
-        Text(text = "풍향: ${detail?.windDir ?: "미확인"}")
-        Text(text = "풍속: ${detail?.windSpeed?.let { "${it}m/s" } ?: "미확인"}")
-        Text(text = "파고: ${detail?.waveHeight?.let { "${it}m" } ?: "미확인"}")
-        if (!detail?.obsStationWeather.isNullOrBlank()) {
-            Text(
-                text = "관측소: ${detail?.obsStationWeather}",
-                fontSize = 12.sp,
-                color = Color.Gray,
-            )
+        InfoSectionCard(title = "세부정보") {
+            InfoLine(label = "수온", value = detail?.waterTemp?.let { "${it}°C" } ?: "미확인")
+            InfoLine(label = "기온", value = detail?.airTemp?.let { "${it}°C" } ?: "미확인")
+            InfoLine(label = "풍향", value = detail?.windDir ?: "미확인")
+            InfoLine(label = "풍속", value = detail?.windSpeed?.let { "${it}m/s" } ?: "미확인")
+            InfoLine(label = "파고", value = detail?.waveHeight?.let { "${it}m" } ?: "미확인")
+            if (!detail?.obsStationWeather.isNullOrBlank()) {
+                Text(
+                    text = "관측소: ${detail?.obsStationWeather}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
 
         Button(
@@ -157,6 +163,7 @@ fun RecordDetailScreen(
                     }
                 }
             },
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
@@ -166,14 +173,12 @@ fun RecordDetailScreen(
         Button(
             onClick = { showDeleteDialog = true },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E)),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .padding(top = 8.dp, bottom = 16.dp),
         ) {
             Text("삭제")
-        }
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("뒤로가기")
         }
     }
 
@@ -195,6 +200,55 @@ fun RecordDetailScreen(
                     Text("취소")
                 }
             },
+        )
+    }
+}
+
+@Composable
+private fun InfoSectionCard(title: String, content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+private fun InfoLine(
+    label: String,
+    value: String,
+    valueUnderline: Boolean = false,
+    onValueClick: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = if (onValueClick != null) Modifier.clickable(onClick = onValueClick) else Modifier,
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        Text(
+            text = value,
+            fontSize = 14.sp,
+            textDecoration = if (valueUnderline) TextDecoration.Underline else null,
         )
     }
 }

@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nakcive.app.ui.theme.NakciveTopBar
 
 @Composable
 fun SettingsScreen(
@@ -48,28 +52,30 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(text = "설정", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        NakciveTopBar(title = "설정", onBack = onBack)
 
-        Text(text = "앱 정보", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
-        Text(text = "낚카이브 v${uiState.appVersion}")
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-        Text(text = "데이터 관리", fontWeight = FontWeight.Bold)
-        if (showCompletedMessage) {
-            Text(text = "모든 기록이 삭제되었습니다.", color = Color(0xFFB3261E))
-        }
-        Button(
-            onClick = { showResetDialog = true },
-            enabled = !uiState.isResetting,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E)),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(if (uiState.isResetting) "삭제 중..." else "전체 기록 삭제")
+        SettingsSectionCard(title = "앱 정보") {
+            Text(text = "낚카이브 v${uiState.appVersion}", fontSize = 14.sp)
         }
 
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("뒤로가기")
+        SettingsSectionCard(title = "데이터 관리") {
+            if (showCompletedMessage) {
+                Text(
+                    text = "모든 기록이 삭제되었습니다.",
+                    color = Color(0xFFB3261E),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+            Button(
+                onClick = { showResetDialog = true },
+                enabled = !uiState.isResetting,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (uiState.isResetting) "삭제 중..." else "전체 기록 삭제")
+            }
         }
     }
 
@@ -93,5 +99,27 @@ fun SettingsScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun SettingsSectionCard(title: String, content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            content()
+        }
     }
 }

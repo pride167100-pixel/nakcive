@@ -17,7 +17,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nakcive.app.data.entity.Species
+import com.nakcive.app.ui.theme.NakciveTopBar
 
 private val SizeBadgeColor = Color(0xFFC62828)
 private val SeasonBadgeColor = Color(0xFF1565C0)
@@ -50,7 +50,7 @@ fun SpeciesInfoScreen(
     }
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text(text = "어종 특징", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        NakciveTopBar(title = "어종 특징", onBack = onBack)
         Text(
             text = "빨간 배지 = 금지체장(방생기준), 파란 배지 = 금어기 · 수산자원관리법 시행령 " +
                 "기준(2026년 개정본). 생태·서식지는 참고용입니다.",
@@ -72,10 +72,6 @@ fun SpeciesInfoScreen(
                     },
                 )
             }
-        }
-
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("뒤로가기")
         }
     }
 }
@@ -104,6 +100,7 @@ private fun SpeciesInfoRow(species: Species, expanded: Boolean, onClick: () -> U
             .fillMaxWidth()
             .animateContentSize()
             .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = species.commonName, fontWeight = FontWeight.Bold, fontSize = 19.sp)

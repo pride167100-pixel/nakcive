@@ -15,11 +15,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.nakcive.app.ui.theme.NakciveTopBar
 
 @Composable
 fun SpeciesScreen(
@@ -47,7 +47,7 @@ fun SpeciesScreen(
     }
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text(text = "도감", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        NakciveTopBar(title = "도감", onBack = onBack)
 
         Row(
             modifier = Modifier
@@ -100,10 +100,6 @@ fun SpeciesScreen(
                 }
             }
         }
-
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("뒤로가기")
-        }
     }
 }
 
@@ -123,7 +119,14 @@ private fun SpeciesRow(entry: SpeciesEntry) {
         .size(64.dp)
         .clip(RoundedCornerShape(8.dp))
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (caught) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (caught) 2.dp else 0.dp),
+    ) {
         Row(modifier = Modifier.padding(12.dp)) {
             if (caught && !entry.bestPhotoPath.isNullOrBlank()) {
                 AsyncImage(
@@ -139,17 +142,24 @@ private fun SpeciesRow(entry: SpeciesEntry) {
                 Text(
                     text = entry.species.commonName,
                     fontWeight = FontWeight.Bold,
-                    color = if (caught) LocalContentColor.current else MaterialTheme.colorScheme.outline,
+                    fontSize = 16.sp,
+                    color = if (caught) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 )
                 if (caught) {
                     val record = entry.userRecord!!
                     Text(
-                        text = "최고 기록: ${record.maxSizeCm?.let { "${it}cm" } ?: "-"}  " +
+                        text = "최고 기록 ${record.maxSizeCm?.let { "${it}cm" } ?: "-"}  " +
                             "${record.maxWeightKg?.let { "${it}kg" } ?: ""}",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(text = "잡은 횟수: ${record.catchCount}회")
+                    Text(
+                        text = "잡은 횟수 ${record.catchCount}회",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 } else {
-                    Text(text = "미등록", color = MaterialTheme.colorScheme.outline)
+                    Text(text = "미등록", fontSize = 13.sp, color = MaterialTheme.colorScheme.outline)
                 }
             }
         }

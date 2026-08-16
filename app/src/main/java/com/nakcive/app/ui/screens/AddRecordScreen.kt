@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,6 +48,7 @@ import com.nakcive.app.data.api.TideApi
 import com.nakcive.app.ui.camera.CameraCaptureScreen
 import com.nakcive.app.ui.camera.getCurrentLocation
 import com.nakcive.app.ui.camera.reverseGeocode
+import com.nakcive.app.ui.theme.NakciveTopBar
 import kotlinx.coroutines.launch
 
 private enum class AddRecordStep { PERMISSION, CAMERA, FORM }
@@ -203,7 +205,7 @@ fun AddRecordScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = "＋ 등록", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                NakciveTopBar(title = "등록", onBack = onBack)
 
                 if (uiState.photoPath.isNotBlank()) {
                     AsyncImage(
@@ -212,7 +214,7 @@ fun AddRecordScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
-                            .clip(RoundedCornerShape(12.dp)),
+                            .clip(RoundedCornerShape(16.dp)),
                         contentScale = ContentScale.Crop,
                     )
                 }
@@ -220,6 +222,7 @@ fun AddRecordScreen(
                     text = uiState.address?.let { "위치: $it" }
                         ?: "위치가 기록되었습니다 (지역: ${uiState.regionTag})",
                     fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 uiState.weatherSnapshot?.let { weather ->
                     Text(
@@ -227,10 +230,15 @@ fun AddRecordScreen(
                             "파고 ${weather.waveHeightM?.let { "${it}m" } ?: "-"} " +
                             "(${weather.sourceLabel})",
                         fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 uiState.tideInfo?.phase?.let { phase ->
-                    Text(text = "물때: $phase", fontSize = 13.sp)
+                    Text(
+                        text = "물때: $phase",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
 
                 OutlinedTextField(
@@ -269,12 +277,12 @@ fun AddRecordScreen(
                 Button(
                     onClick = viewModel::save,
                     enabled = !uiState.isSaving,
-                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
                 ) {
                     Text(if (uiState.isSaving) "저장 중..." else "저장")
-                }
-                TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                    Text("취소")
                 }
             }
         }

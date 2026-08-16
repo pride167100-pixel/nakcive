@@ -10,7 +10,13 @@ import android.graphics.Paint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -85,13 +91,23 @@ fun MapScreen(
             }
         }
 
-        Button(
+        Surface(
             onClick = onBack,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp),
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+                .size(44.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 4.dp,
         ) {
-            Text("뒤로가기")
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "뒤로가기",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }

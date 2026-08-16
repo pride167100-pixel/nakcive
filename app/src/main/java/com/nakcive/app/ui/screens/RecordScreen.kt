@@ -16,11 +16,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.nakcive.app.data.entity.FishingRecord
+import com.nakcive.app.ui.theme.NakciveTopBar
 
 @Composable
 fun RecordScreen(
@@ -45,7 +46,7 @@ fun RecordScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text(text = "기록", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        NakciveTopBar(title = "기록", onBack = onBack)
 
         OutlinedTextField(
             value = uiState.searchQuery,
@@ -106,10 +107,6 @@ fun RecordScreen(
                 }
             }
         }
-
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("뒤로가기")
-        }
     }
 }
 
@@ -128,6 +125,8 @@ private fun RecordRow(record: FishingRecord, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(modifier = Modifier.padding(12.dp)) {
             RecordThumbnail(photoPath = record.photoPath)
@@ -136,15 +135,27 @@ private fun RecordRow(record: FishingRecord, onClick: () -> Unit) {
                 Text(
                     text = "${record.customSpeciesName ?: "어종 미입력"}  ($locationLabel)",
                     fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                )
+                val secondaryColor = MaterialTheme.colorScheme.onSurfaceVariant
+                Text(
+                    text = "크기 ${record.sizeCm?.let { "${it}cm" } ?: "-"}   " +
+                        "무게 ${record.weightKg?.let { "${it}kg" } ?: "-"}",
+                    fontSize = 13.sp,
+                    color = secondaryColor,
                 )
                 Text(
-                    text = "크기: ${record.sizeCm?.let { "${it}cm" } ?: "-"}   " +
-                        "무게: ${record.weightKg?.let { "${it}kg" } ?: "-"}"
+                    text = "낚시법 ${record.fishingMethod.ifBlank { "-" }}",
+                    fontSize = 13.sp,
+                    color = secondaryColor,
                 )
-                Text(text = "낚시법: ${record.fishingMethod.ifBlank { "-" }}")
-                Text(text = "위치: ${record.address ?: "-"}")
+                Text(
+                    text = record.address ?: "위치 미확인",
+                    fontSize = 13.sp,
+                    color = secondaryColor,
+                )
                 if (!record.memo.isNullOrBlank()) {
-                    Text(text = "메모: ${record.memo}")
+                    Text(text = record.memo, fontSize = 13.sp, color = secondaryColor)
                 }
             }
         }
