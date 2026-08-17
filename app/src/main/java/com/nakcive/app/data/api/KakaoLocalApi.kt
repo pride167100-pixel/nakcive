@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 // 카카오 개발자 콘솔의 REST API 키. 네이티브 앱 키(지도용)와는 다른 값이다.
 // 개인용 프로젝트라 코드에 직접 둠 — 저장소를 공개할 계획이 생기면 새로 발급받아 교체할 것.
-internal const val KAKAO_REST_API_KEY = "REPLACE_WITH_KAKAO_REST_API_KEY"
+internal const val KAKAO_REST_API_KEY = "d2770b4ec79dc2bf294374b545de63bf"
 
 data class NearbyRestroom(
     val id: String,
