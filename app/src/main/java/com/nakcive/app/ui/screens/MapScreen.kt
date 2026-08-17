@@ -7,13 +7,21 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Wc
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,7 +37,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -46,12 +56,14 @@ import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
 import com.nakcive.app.R
+import com.nakcive.app.data.api.NearbyRestroom
 import com.nakcive.app.data.entity.FishingRecord
 import com.nakcive.app.ui.camera.getCurrentLocation
 
 private const val DEFAULT_LAT = 36.5
 private const val DEFAULT_LNG = 127.8
 private const val LABEL_ID_PREFIX = "record_"
+private const val RESTROOM_LABEL_ID_PREFIX = "restroom_"
 private const val CURRENT_LOCATION_LABEL_ID = "current_location"
 
 @Composable
@@ -62,13 +74,17 @@ fun MapScreen(
     viewModel: MapViewModel = viewModel(),
 ) {
     val records by viewModel.records.collectAsState()
+    val restroomState by viewModel.restroomState.collectAsState()
     var mapError by remember { mutableStateOf<String?>(null) }
+    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         KakaoMapView(
             records = records,
+            restroomState = restroomState,
             onRecordClick = onRecordClick,
             onMapError = { mapError = it },
+            onLocationFound = { currentLocation = it },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -109,14 +125,97 @@ fun MapScreen(
                 )
             }
         }
+
+        Surface(
+            onClick = { viewModel.toggleRestrooms(currentLocation?.latitude, currentLocation?.longitude) },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .size(44.dp),
+            shape = CircleShape,
+            color = if (restroomState.visible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+            shadowElevation = 4.dp,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Filled.Wc,
+                    contentDescription = "화장실 보기",
+                    tint = if (restroomState.visible) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        if (restroomState.visible) {
+            RestroomList(
+                state = restroomState,
+                onSelect = viewModel::selectRestroom,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun RestroomList(
+    state: RestroomUiState,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "주변 화장실",
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+            when {
+                state.isLoading -> Text("찾는 중...", fontSize = 13.sp)
+                state.restrooms.isEmpty() -> Text("주변에서 화장실을 찾지 못했습니다", fontSize = 13.sp)
+                else -> Column {
+                    state.restrooms.forEach { restroom ->
+                        val selected = restroom.id == state.selectedId
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(restroom.id) }
+                                .background(
+                                    if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                    RoundedCornerShape(10.dp),
+                                )
+                                .padding(vertical = 8.dp, horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(text = restroom.name, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                            Text(
+                                text = restroom.distanceM?.let { "${it}m" } ?: "-",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
 private fun KakaoMapView(
     records: List<FishingRecord>,
+    restroomState: RestroomUiState,
     onRecordClick: (Long) -> Unit,
     onMapError: (String) -> Unit,
+    onLocationFound: (LatLng) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -129,6 +228,8 @@ private fun KakaoMapView(
     // 미리 실제 비트맵 이미지로 직접 그려서 넘긴다.
     val markerBitmap = remember { createMarkerBitmap(context) }
     val currentLocationBitmap = remember { createCurrentLocationBitmap() }
+    val restroomBitmap = remember { createRestroomBitmap(selected = false) }
+    val restroomSelectedBitmap = remember { createRestroomBitmap(selected = true) }
 
     LaunchedEffect(Unit) {
         val hasPermission = ContextCompat.checkSelfPermission(
@@ -138,7 +239,9 @@ private fun KakaoMapView(
         if (hasPermission) {
             val location = getCurrentLocation(context)
             if (location != null) {
-                currentLocation.value = LatLng.from(location.latitude, location.longitude)
+                val latLng = LatLng.from(location.latitude, location.longitude)
+                currentLocation.value = latLng
+                onLocationFound(latLng)
             }
         }
     }
@@ -178,15 +281,19 @@ private fun KakaoMapView(
         },
     )
 
-    LaunchedEffect(records, kakaoMapState.value, currentLocation.value) {
+    LaunchedEffect(records, kakaoMapState.value, currentLocation.value, restroomState.restrooms, restroomState.selectedId) {
         val kakaoMap = kakaoMapState.value ?: return@LaunchedEffect
         try {
-            val failureReason = drawRecordLabels(
-                kakaoMap,
-                records,
-                markerBitmap,
-                currentLocation.value,
-                currentLocationBitmap,
+            val failureReason = drawLabels(
+                kakaoMap = kakaoMap,
+                records = records,
+                markerBitmap = markerBitmap,
+                currentLocation = currentLocation.value,
+                currentLocationBitmap = currentLocationBitmap,
+                restrooms = restroomState.restrooms,
+                restroomBitmap = restroomBitmap,
+                restroomSelectedBitmap = restroomSelectedBitmap,
+                selectedRestroomId = restroomState.selectedId,
             )
             if (failureReason != null) {
                 onMapError("마커 표시 실패 ($failureReason)")
@@ -204,6 +311,14 @@ private fun KakaoMapView(
         }
     }
 
+    LaunchedEffect(restroomState.selectedId) {
+        val kakaoMap = kakaoMapState.value ?: return@LaunchedEffect
+        val selected = restroomState.restrooms.firstOrNull { it.id == restroomState.selectedId } ?: return@LaunchedEffect
+        kakaoMap.moveCamera(
+            CameraUpdateFactory.newCenterPosition(LatLng.from(selected.latitude, selected.longitude), 15),
+        )
+    }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -218,12 +333,16 @@ private fun KakaoMapView(
 }
 
 /** 성공하면 null, 실패하면 원인 문구를 반환한다 (화면에 그대로 보여주기 위함). */
-private fun drawRecordLabels(
+private fun drawLabels(
     kakaoMap: KakaoMap,
     records: List<FishingRecord>,
     markerBitmap: Bitmap,
     currentLocation: LatLng?,
     currentLocationBitmap: Bitmap,
+    restrooms: List<NearbyRestroom>,
+    restroomBitmap: Bitmap,
+    restroomSelectedBitmap: Bitmap,
+    selectedRestroomId: String?,
 ): String? {
     val labelManager = kakaoMap.labelManager ?: return "labelManager가 null"
     val layer = labelManager.layer ?: return "labelManager.layer가 null"
@@ -238,16 +357,33 @@ private fun drawRecordLabels(
         )
     }
 
-    if (records.isEmpty()) return null
-    val styles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(markerBitmap)))
-        ?: return "addLabelStyles가 null"
-    records.forEach { record ->
-        val options = LabelOptions.from(
-            "$LABEL_ID_PREFIX${record.id}",
-            LatLng.from(record.latitude, record.longitude),
-        ).setStyles(styles)
-        layer.addLabel(options)
+    if (records.isNotEmpty()) {
+        val styles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(markerBitmap)))
+            ?: return "addLabelStyles가 null"
+        records.forEach { record ->
+            val options = LabelOptions.from(
+                "$LABEL_ID_PREFIX${record.id}",
+                LatLng.from(record.latitude, record.longitude),
+            ).setStyles(styles)
+            layer.addLabel(options)
+        }
     }
+
+    if (restrooms.isNotEmpty()) {
+        val normalStyles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(restroomBitmap)))
+            ?: return "addLabelStyles(화장실)가 null"
+        val selectedStyles = labelManager.addLabelStyles(LabelStyles.from(LabelStyle.from(restroomSelectedBitmap)))
+            ?: return "addLabelStyles(화장실 선택)가 null"
+        restrooms.forEach { restroom ->
+            val isSelected = restroom.id == selectedRestroomId
+            val options = LabelOptions.from(
+                "$RESTROOM_LABEL_ID_PREFIX${restroom.id}",
+                LatLng.from(restroom.latitude, restroom.longitude),
+            ).setStyles(if (isSelected) selectedStyles else normalStyles)
+            layer.addLabel(options)
+        }
+    }
+
     return null
 }
 
@@ -272,5 +408,28 @@ private fun createCurrentLocationBitmap(): Bitmap {
     val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#4285F4") }
     canvas.drawCircle(center, center, center, borderPaint)
     canvas.drawCircle(center, center, center - 5f, dotPaint)
+    return bitmap
+}
+
+/** 보라색 "W" 점으로 된 화장실 마커. 선택되면 조금 더 크게 그려서 강조한다. */
+private fun createRestroomBitmap(selected: Boolean): Bitmap {
+    val sizePx = if (selected) 56 else 36
+    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val center = sizePx / 2f
+    val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor(if (selected) "#7C4DFF" else "#9575CD")
+    }
+    canvas.drawCircle(center, center, center, borderPaint)
+    canvas.drawCircle(center, center, center - 4f, dotPaint)
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textAlign = Paint.Align.CENTER
+        textSize = sizePx * 0.45f
+        isFakeBoldText = true
+    }
+    val textY = center - (textPaint.descent() + textPaint.ascent()) / 2
+    canvas.drawText("W", center, textY, textPaint)
     return bitmap
 }
