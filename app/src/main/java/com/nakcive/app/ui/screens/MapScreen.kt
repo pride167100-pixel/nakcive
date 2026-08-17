@@ -9,6 +9,8 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -254,7 +256,9 @@ private fun KakaoMapView(
     val restroomSelectedBitmap = remember { createRestroomBitmap(selected = true) }
     val explorePointBitmap = remember { createExplorePointBitmap() }
     // 카카오맵 SDK에는 지도 길게 누르기 이벤트가 따로 없어서, 터치를 직접 감지해 처리한다.
-    // GestureDetector는 항상 이벤트를 그대로 흘려보내(false 반환) 지도 자체의 확대/이동 제스처는 그대로 동작한다.
+    // MapView에 setOnTouchListener를 걸면 지도 자체의 내부 터치 처리(확대/이동 등)를
+    // 덮어써서 전부 먹통이 되므로, 대신 감싸는 컨테이너의 dispatchTouchEvent에서
+    // "구경만" 하고 그대로 흘려보내는 방식으로 처리한다.
     val gestureDetector = remember {
         GestureDetector(
             context,
@@ -290,10 +294,16 @@ private fun KakaoMapView(
         factory = { context ->
             val view = MapView(context)
             mapView.value = view
-            view.setOnTouchListener { _, event ->
-                gestureDetector.onTouchEvent(event)
-                false
+            val container = object : FrameLayout(context) {
+                override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+                    gestureDetector.onTouchEvent(ev)
+                    return super.dispatchTouchEvent(ev)
+                }
             }
+            container.addView(
+                view,
+                ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
+            )
             view.start(
                 object : MapLifeCycleCallback() {
                     override fun onMapDestroy() {}
@@ -320,7 +330,7 @@ private fun KakaoMapView(
                     override fun getZoomLevel(): Int = 7
                 },
             )
-            view
+            container
         },
     )
 
