@@ -7,6 +7,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.view.GestureDetector
+import android.view.MotionEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -251,6 +253,22 @@ private fun KakaoMapView(
     val restroomBitmap = remember { createRestroomBitmap(selected = false) }
     val restroomSelectedBitmap = remember { createRestroomBitmap(selected = true) }
     val explorePointBitmap = remember { createExplorePointBitmap() }
+    // 카카오맵 SDK에는 지도 길게 누르기 이벤트가 따로 없어서, 터치를 직접 감지해 처리한다.
+    // GestureDetector는 항상 이벤트를 그대로 흘려보내(false 반환) 지도 자체의 확대/이동 제스처는 그대로 동작한다.
+    val gestureDetector = remember {
+        GestureDetector(
+            context,
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDown(e: MotionEvent): Boolean = true
+
+                override fun onLongPress(e: MotionEvent) {
+                    val kakaoMap = kakaoMapState.value ?: return
+                    val position = kakaoMap.fromScreenPoint(e.x.toInt(), e.y.toInt()) ?: return
+                    onLongPress(position)
+                }
+            },
+        )
+    }
 
     LaunchedEffect(Unit) {
         val hasPermission = ContextCompat.checkSelfPermission(
@@ -272,6 +290,10 @@ private fun KakaoMapView(
         factory = { context ->
             val view = MapView(context)
             mapView.value = view
+            view.setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event)
+                false
+            }
             view.start(
                 object : MapLifeCycleCallback() {
                     override fun onMapDestroy() {}
@@ -287,10 +309,6 @@ private fun KakaoMapView(
                                 .toLongOrNull()
                                 ?.let(onRecordClick)
                             true
-                        }
-                        // 지도를 길게 누르면 그 지점을 "탐색 포인트"로 삼아 주변 화장실을 찾는다.
-                        kakaoMap.setOnMapLongClickListener { _, position, _, _ ->
-                            onLongPress(position)
                         }
                         // 지도가 준비된 시점엔 기록 목록이 아직 DB에서 다 안 불러와졌을 수 있어서,
                         // 실제로 마커를 찍고 카메라를 옮기는 건 아래 LaunchedEffect(records)에서 처리한다.
