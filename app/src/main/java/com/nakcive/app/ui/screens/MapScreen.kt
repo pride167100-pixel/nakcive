@@ -201,6 +201,19 @@ private fun RestroomList(
                 modifier = Modifier.padding(bottom = 6.dp),
             )
             when {
+                state.isPreparing -> Column {
+                    Text(
+                        text = "화장실 데이터 준비 중이에요 (최초 1회, 몇 분 정도 걸려요)",
+                        fontSize = 13.sp,
+                    )
+                    if (state.prepTotal > 0) {
+                        Text(
+                            text = "${state.prepDone} / ${state.prepTotal}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                }
                 state.isLoading -> Text("찾는 중...", fontSize = 13.sp)
                 state.restrooms.isEmpty() -> Text("주변에서 화장실을 찾지 못했습니다", fontSize = 13.sp)
                 else -> Column {
