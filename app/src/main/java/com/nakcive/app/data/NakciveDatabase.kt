@@ -43,7 +43,7 @@ abstract class NakciveDatabase : RoomDatabase() {
                     context.applicationContext,
                     NakciveDatabase::class.java,
                     "nakcive.db",
-                ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
+                ).build().also { INSTANCE = it }
             }
         }
     }
