@@ -68,4 +68,27 @@ object KakaoLocalApi {
             )
         }
     }
+
+    /** 주소 문자열을 좌표로 변환한다 (정부 공식 화장실 목록의 좌표를 보강하기 위함). */
+    suspend fun geocodeAddress(address: String): Pair<Double, Double>? = withContext(Dispatchers.IO) {
+        try {
+            val url = "https://dapi.kakao.com/v2/local/search/address.json" +
+                "?query=${URLEncoder.encode(address, "UTF-8")}"
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "KakaoAK $KAKAO_REST_API_KEY")
+                .build()
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string() ?: return@withContext null
+                if (!response.isSuccessful) return@withContext null
+                val documents = JSONObject(body).optJSONArray("documents") ?: return@withContext null
+                val doc = documents.optJSONObject(0) ?: return@withContext null
+                val lat = doc.optString("y").toDoubleOrNull() ?: return@withContext null
+                val lng = doc.optString("x").toDoubleOrNull() ?: return@withContext null
+                lat to lng
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
 }
