@@ -33,19 +33,25 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val _restroomState = MutableStateFlow(RestroomUiState())
     val restroomState: StateFlow<RestroomUiState> = _restroomState.asStateFlow()
 
-    fun toggleRestrooms(latitude: Double?, longitude: Double?) {
-        val currentlyVisible = _restroomState.value.visible
-        if (currentlyVisible) {
-            _restroomState.value = RestroomUiState(visible = false)
+    fun toggleRestroomsAtCurrentLocation(latitude: Double?, longitude: Double?) {
+        if (_restroomState.value.visible) {
+            hideRestrooms()
             return
         }
         if (latitude == null || longitude == null) return
+        showRestroomsNear(latitude, longitude)
+    }
 
-        _restroomState.update { it.copy(visible = true, isLoading = true) }
+    fun showRestroomsNear(latitude: Double, longitude: Double) {
+        _restroomState.update { it.copy(visible = true, isLoading = true, selectedId = null) }
         viewModelScope.launch {
             val results = KakaoLocalApi.fetchNearbyRestrooms(latitude, longitude)
             _restroomState.update { it.copy(isLoading = false, restrooms = results) }
         }
+    }
+
+    fun hideRestrooms() {
+        _restroomState.value = RestroomUiState(visible = false)
     }
 
     fun selectRestroom(id: String) {

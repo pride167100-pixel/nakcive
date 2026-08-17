@@ -65,6 +65,7 @@ private const val DEFAULT_LNG = 127.8
 private const val LABEL_ID_PREFIX = "record_"
 private const val RESTROOM_LABEL_ID_PREFIX = "restroom_"
 private const val CURRENT_LOCATION_LABEL_ID = "current_location"
+private const val EXPLORE_POINT_LABEL_ID = "explore_point"
 
 @Composable
 fun MapScreen(
@@ -77,14 +78,24 @@ fun MapScreen(
     val restroomState by viewModel.restroomState.collectAsState()
     var mapError by remember { mutableStateOf<String?>(null) }
     var currentLocation by remember { mutableStateOf<LatLng?>(null) }
+    var explorePoint by remember { mutableStateOf<LatLng?>(null) }
+
+    LaunchedEffect(restroomState.visible) {
+        if (!restroomState.visible) explorePoint = null
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         KakaoMapView(
             records = records,
             restroomState = restroomState,
+            explorePoint = explorePoint,
             onRecordClick = onRecordClick,
             onMapError = { mapError = it },
             onLocationFound = { currentLocation = it },
+            onLongPress = { latLng ->
+                explorePoint = latLng
+                viewModel.showRestroomsNear(latLng.latitude, latLng.longitude)
+            },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -127,7 +138,9 @@ fun MapScreen(
         }
 
         Surface(
-            onClick = { viewModel.toggleRestrooms(currentLocation?.latitude, currentLocation?.longitude) },
+            onClick = {
+                viewModel.toggleRestroomsAtCurrentLocation(currentLocation?.latitude, currentLocation?.longitude)
+            },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
@@ -176,6 +189,11 @@ private fun RestroomList(
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = "다른 위치가 궁금하면 지도를 길게 눌러보세요",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(bottom = 6.dp),
             )
             when {
@@ -213,9 +231,11 @@ private fun RestroomList(
 private fun KakaoMapView(
     records: List<FishingRecord>,
     restroomState: RestroomUiState,
+    explorePoint: LatLng?,
     onRecordClick: (Long) -> Unit,
     onMapError: (String) -> Unit,
     onLocationFound: (LatLng) -> Unit,
+    onLongPress: (LatLng) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -230,6 +250,7 @@ private fun KakaoMapView(
     val currentLocationBitmap = remember { createCurrentLocationBitmap() }
     val restroomBitmap = remember { createRestroomBitmap(selected = false) }
     val restroomSelectedBitmap = remember { createRestroomBitmap(selected = true) }
+    val explorePointBitmap = remember { createExplorePointBitmap() }
 
     LaunchedEffect(Unit) {
         val hasPermission = ContextCompat.checkSelfPermission(
@@ -267,6 +288,10 @@ private fun KakaoMapView(
                                 ?.let(onRecordClick)
                             true
                         }
+                        // 지도를 길게 누르면 그 지점을 "탐색 포인트"로 삼아 주변 화장실을 찾는다.
+                        kakaoMap.setOnMapLongClickListener { _, position, _, _ ->
+                            onLongPress(position)
+                        }
                         // 지도가 준비된 시점엔 기록 목록이 아직 DB에서 다 안 불러와졌을 수 있어서,
                         // 실제로 마커를 찍고 카메라를 옮기는 건 아래 LaunchedEffect(records)에서 처리한다.
                         kakaoMapState.value = kakaoMap
@@ -281,7 +306,14 @@ private fun KakaoMapView(
         },
     )
 
-    LaunchedEffect(records, kakaoMapState.value, currentLocation.value, restroomState.restrooms, restroomState.selectedId) {
+    LaunchedEffect(
+        records,
+        kakaoMapState.value,
+        currentLocation.value,
+        restroomState.restrooms,
+        restroomState.selectedId,
+        explorePoint,
+    ) {
         val kakaoMap = kakaoMapState.value ?: return@LaunchedEffect
         try {
             val failureReason = drawLabels(
@@ -294,6 +326,8 @@ private fun KakaoMapView(
                 restroomBitmap = restroomBitmap,
                 restroomSelectedBitmap = restroomSelectedBitmap,
                 selectedRestroomId = restroomState.selectedId,
+                explorePoint = explorePoint,
+                explorePointBitmap = explorePointBitmap,
             )
             if (failureReason != null) {
                 onMapError("마커 표시 실패 ($failureReason)")
@@ -343,6 +377,8 @@ private fun drawLabels(
     restroomBitmap: Bitmap,
     restroomSelectedBitmap: Bitmap,
     selectedRestroomId: String?,
+    explorePoint: LatLng?,
+    explorePointBitmap: Bitmap,
 ): String? {
     val labelManager = kakaoMap.labelManager ?: return "labelManager가 null"
     val layer = labelManager.layer ?: return "labelManager.layer가 null"
@@ -354,6 +390,15 @@ private fun drawLabels(
         ) ?: return "addLabelStyles(내 위치)가 null"
         layer.addLabel(
             LabelOptions.from(CURRENT_LOCATION_LABEL_ID, currentLocation).setStyles(currentLocationStyles),
+        )
+    }
+
+    if (explorePoint != null) {
+        val explorePointStyles = labelManager.addLabelStyles(
+            LabelStyles.from(LabelStyle.from(explorePointBitmap)),
+        ) ?: return "addLabelStyles(탐색 포인트)가 null"
+        layer.addLabel(
+            LabelOptions.from(EXPLORE_POINT_LABEL_ID, explorePoint).setStyles(explorePointStyles),
         )
     }
 
@@ -408,6 +453,19 @@ private fun createCurrentLocationBitmap(): Bitmap {
     val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#4285F4") }
     canvas.drawCircle(center, center, center, borderPaint)
     canvas.drawCircle(center, center, center - 5f, dotPaint)
+    return bitmap
+}
+
+/** 지도를 길게 눌러 지정한 "탐색 포인트"를 주황색 점으로 표시한다. */
+private fun createExplorePointBitmap(): Bitmap {
+    val sizePx = 44
+    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val center = sizePx / 2f
+    val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#FF7A59") }
+    canvas.drawCircle(center, center, center, borderPaint)
+    canvas.drawCircle(center, center, center - 4f, dotPaint)
     return bitmap
 }
 
